@@ -39,6 +39,7 @@ class AnimeExtensionsScreenModel(
     basePreferences: BasePreferences = Injekt.get(),
     private val extensionManager: AnimeExtensionManager = Injekt.get(),
     private val getExtensions: GetAnimeExtensionsByType = Injekt.get(),
+    private val lazyLoad: Boolean = false,
 ) : StateScreenModel<AnimeExtensionsScreenModel.State>(State()) {
 
     private val currentDownloads = MutableStateFlow<Map<String, InstallStep>>(hashMapOf())
@@ -141,7 +142,13 @@ class AnimeExtensionsScreenModel(
                     }
                 }
         }
-        screenModelScope.launchIO { findAvailableExtensions() }
+
+        screenModelScope.launchIO {
+            // Cargar extensiones al inicio solo si no es carga perezosa
+            if (!lazyLoad) {
+                extensionManager.findAvailableExtensions()
+            }
+        }
 
         preferences.animeExtensionUpdatesCount().changes()
             .onEach { mutableState.update { state -> state.copy(updates = it) } }

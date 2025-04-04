@@ -75,7 +75,7 @@ android {
             buildConfigField("boolean", "PREVIEW", "true")
 
             signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks.add("release")
+            // matchingFallbacks.add("release")
             val debugType = getByName("debug")
             versionNameSuffix = debugType.versionNameSuffix
             applicationIdSuffix = debugType.applicationIdSuffix
@@ -84,7 +84,7 @@ android {
             initWith(getByName("release"))
 
             signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks.add("release")
+            // matchingFallbacks.add("release")
             isDebuggable = false
             isProfileable = true
             versionNameSuffix = "-benchmark"

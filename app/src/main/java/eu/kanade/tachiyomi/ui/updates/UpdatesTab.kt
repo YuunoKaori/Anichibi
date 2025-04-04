@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.updates
 
+import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.animation.graphics.res.animatedVectorResource
 import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
@@ -23,13 +24,22 @@ import tachiyomi.presentation.core.i18n.stringResource
 
 data object UpdatesTab : Tab {
 
+    @OptIn(ExperimentalAnimationGraphicsApi::class)
     override val options: TabOptions
         @Composable
         get() {
             val isSelected = LocalTabNavigator.current.current.key == key
             val image = AnimatedImageVector.animatedVectorResource(R.drawable.anim_updates_enter)
+            val fromMore = when (currentNavigationStyle()) {
+                NavStyle.MOVE_UPDATES_TO_MORE,
+                NavStyle.GROUP_AND_MOVE_UPDATES,
+                NavStyle.FAVORITES_AND_HISTORY -> true
+                else -> false
+            }
             val index: UShort = when (currentNavigationStyle()) {
-                NavStyle.MOVE_UPDATES_TO_MORE -> 5u
+                NavStyle.MOVE_UPDATES_TO_MORE,
+                NavStyle.GROUP_AND_MOVE_UPDATES,
+                NavStyle.FAVORITES_AND_HISTORY -> 5u
                 NavStyle.MOVE_HISTORY_TO_MORE -> 2u
                 NavStyle.MOVE_BROWSE_TO_MORE -> 2u
                 NavStyle.MOVE_MANGA_TO_MORE -> 1u

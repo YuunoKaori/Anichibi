@@ -112,6 +112,10 @@ class SourcePreferences(
 
     fun dataSaverDownloader() = preferenceStore.getBoolean("data_saver_downloader", true)
 
+    // Fuentes marcadas con estrella
+    fun starredAnimeSource() = preferenceStore.getString("starred_anime_source", "")
+    fun starredMangaSource() = preferenceStore.getString("starred_manga_source", "")
+
     enum class DataSaver {
         NONE,
         BANDWIDTH_HERO,

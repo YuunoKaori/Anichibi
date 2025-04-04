@@ -1,16 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="512"
+    android:viewportHeight="512"
+    android:width="256dp"
+    android:height="256dp">
+    
+    <!-- Fondo circular para modo monocromático -->
     <path
-        android:pathData="M76.51,53.99A22.51,22.55 0,0 1,54 76.55A22.51,22.55 0,0 1,31.49 53.99A22.51,22.55 0,0 1,54 31.44A22.51,22.55 0,0 1,76.51 53.99Z"
-        android:strokeWidth="5"
-        android:fillColor="#D8D8D8"
-        android:fillAlpha="0"
-        android:strokeColor="#000000"/>
+        android:pathData="M256,60 A196,196 0 1,0 256,452 A196,196 0 1,0 256,60z"
+        android:fillColor="#000000" />
+    
+    <!-- Carácter "幻" (fantasía/ilusión) optimizado -->
     <path
-        android:pathData="m64,52.88l-15.13,-8.74c-0.9,-0.52 -2.03,0.13 -2.03,1.17v17.47c0,1.04 1.13,1.7 2.03,1.17L64,55.22c0.9,-0.52 0.9,-1.83 0,-2.35z"
-        android:strokeWidth="0.0853242"
-        android:fillColor="#000"/>
+        android:pathData="M64,64h384v42.6h-170.6v42.6h181.3v42.6h-181.3v42.6h181.3v42.6h-384v-42.6h170.6v-42.6h-170.6v-42.6h170.6v-42.6h-170.6v-42.6z"
+        android:fillColor="#FFFFFF" />
 </vector>

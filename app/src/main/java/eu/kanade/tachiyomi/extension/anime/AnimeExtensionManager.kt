@@ -126,9 +126,15 @@ class AnimeExtensionManager(
     }
 
     /**
-     * Finds the available anime extensions in the [api] and updates [availableExtensionsMapFlow].
+     * Finds the available extensions in the [api] and updates [availableExtensionsMapFlow].
      */
     suspend fun findAvailableExtensions() {
+        val cachedExtensions = availableExtensionsMapFlow.value
+        if (cachedExtensions.isNotEmpty()) {
+            // Si ya tenemos extensiones cargadas, usarlas directamente
+            return
+        }
+        
         val extensions: List<AnimeExtension.Available> = try {
             api.findExtensions()
         } catch (e: Exception) {
@@ -322,6 +328,14 @@ class AnimeExtensionManager(
         override fun onExtensionInstalled(extension: AnimeExtension.Installed) {
             registerNewExtension(extension.withUpdateCheck())
             updatePendingUpdatesCount()
+            
+            // Marcar automáticamente la primera extensión instalada como favorita si no hay ninguna
+            val currentStarredSource = preferences.starredAnimeSource().get()
+            if (currentStarredSource.isNullOrEmpty() && extension.sources.isNotEmpty()) {
+                // Tomamos la primera fuente de la extensión y la marcamos como estrella
+                val sourceToStar = extension.sources.first()
+                preferences.starredAnimeSource().set(sourceToStar.id.toString())
+            }
         }
 
         override fun onExtensionUpdated(extension: AnimeExtension.Installed) {
