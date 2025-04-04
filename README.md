@@ -40,6 +40,10 @@ Before reporting a new issue, you may want to check the resources from the Aniyo
 * **YuunoKaori** ([GitHub](https://github.com/YuunoKaori))
 * Thank you to the teams behind Mihon and Aniyomi, and all their contributors!
 
+* <a href="https://github.com/aniyomiorg/aniyomi/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=aniyomiorg/aniyomi" alt="Aniyomi app contributors" title="Aniyomi app contributors" width="800"/>
+</a>
+
 ### Disclaimer
 
 The developer(s) of this application does not have any affiliation with the content providers available, and this application hosts zero content.
