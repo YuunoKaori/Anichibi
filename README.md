@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="#">
-    <img src="https://i.ibb.co/9H5yWcwj/Logo2.png" alt="Anichibi logo" title="Anichibi logo" width="80"/>
+    <img src="https://i.ibb.co/9H5yWcwj/Logo2.png" alt="Anichibi logo" title="Anichibi logo" width="500"/>
 </a>
 
 # Anichibi [App](#)
