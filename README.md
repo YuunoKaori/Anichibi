@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="#">
-    <img src="https://i.ibb.co/p6nQBGfG/Logo.png" alt="Anichibi logo" title="Anichibi logo" width="80"/>
+    <img src="https://i.ibb.co/9H5yWcwj/Logo2.png" alt="Anichibi logo" title="Anichibi logo" width="80"/>
 </a>
 
 # Anichibi [App](#)
@@ -37,7 +37,7 @@ Before reporting a new issue, you may want to check the resources from the Aniyo
 
 ### Credits
 
-* **YuunoKaori** ([GitHub](https://github.com/YuunoKaori))
+* **YuunoKaori** ([GitHub](https://github.com/aniyomiorg/aniyomi)
 * Thank you to the teams behind Mihon and Aniyomi, and all their contributors!
 
 * <a href="https://github.com/aniyomiorg/aniyomi/graphs/contributors">
@@ -54,7 +54,7 @@ The developer(s) of this application does not have any affiliation with the cont
 Copyright © 2015 Javier Tomás
 Copyright © 2024 The Mihon Open Source Project
 Copyright © 2024 The Aniyomi Open Source Project
-Copyright © 2024 YuunoKaori
+Copyright © 2025 YuunoKaori
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
