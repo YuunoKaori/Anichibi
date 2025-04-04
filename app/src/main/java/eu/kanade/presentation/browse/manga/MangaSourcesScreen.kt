@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,9 +19,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.browse.manga.components.BaseMangaSourceItem
 import eu.kanade.tachiyomi.ui.browse.manga.source.MangaSourcesScreenModel
 import eu.kanade.tachiyomi.ui.browse.manga.source.browse.BrowseMangaSourceScreenModel.Listing
@@ -37,6 +43,9 @@ import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.presentation.core.theme.header
 import tachiyomi.presentation.core.util.plus
 import tachiyomi.source.local.entries.manga.LocalMangaSource
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import kotlinx.coroutines.launch
 
 @Composable
 fun MangaSourcesScreen(
@@ -117,6 +126,11 @@ private fun SourceItem(
     onClickPin: (Source) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sourcePreferences: SourcePreferences = remember { Injekt.get() }
+    val starredSourceId = sourcePreferences.starredMangaSource().get()?.toLongOrNull()
+    val isStarred = starredSourceId == source.id
+    val scope = rememberCoroutineScope()
+
     BaseMangaSourceItem(
         modifier = modifier,
         source = source,
@@ -133,6 +147,41 @@ private fun SourceItem(
                     )
                 }
             }
+            
+            // Botón de estrella para marcar como fuente predeterminada
+            val starIcon = if (isStarred) {
+                Icons.Filled.Star
+            } else {
+                Icons.Outlined.Star
+            }
+            val starTint = if (isStarred) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onBackground.copy(alpha = SECONDARY_ALPHA)
+            }
+            val starDescription = if (isStarred) {
+                "Quitar como predeterminada"
+            } else {
+                "Marcar como predeterminada"
+            }
+            
+            IconButton(
+                onClick = {
+                    // Siempre permitir cambiar de extensión predeterminada
+                    sourcePreferences.starredMangaSource().set(source.id.toString())
+                    // Forzar recomposición inmediata
+                    scope.launch {
+                        sourcePreferences.starredMangaSource().changes().collect { }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = starIcon,
+                    tint = starTint,
+                    contentDescription = starDescription,
+                )
+            }
+            
             SourcePinButton(
                 isPinned = Pin.Pinned in source.pin,
                 onClick = { onClickPin(source) },

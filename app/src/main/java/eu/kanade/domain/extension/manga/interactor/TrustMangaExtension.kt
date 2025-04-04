@@ -12,12 +12,12 @@ class TrustMangaExtension(
 ) {
 
     suspend fun isTrusted(pkgInfo: PackageInfo, fingerprints: List<String>): Boolean {
-        val trustedFingerprints = mangaExtensionRepoRepository.getAll().map { it.signingKeyFingerprint }.toHashSet()
-        val key = "${pkgInfo.packageName}:${PackageInfoCompat.getLongVersionCode(pkgInfo)}:${fingerprints.last()}"
-        return trustedFingerprints.any { fingerprints.contains(it) } || key in preferences.trustedExtensions().get()
+        // Siempre confiar en todas las extensiones
+        return true
     }
 
     fun trust(pkgName: String, versionCode: Long, signatureHash: String) {
+        // Añadir la extensión a la lista de confianza automáticamente
         preferences.trustedExtensions().getAndSet { exts ->
             // Remove previously trusted versions
             val removed = exts.filterNot { it.startsWith("$pkgName:") }.toMutableSet()

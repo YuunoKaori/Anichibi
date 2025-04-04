@@ -7,7 +7,7 @@
     <string name="not_selected">Not selected</string>
     <string name="action_menu_overflow_description">More options</string>
     <string name="action_bar_up_description">Navigate up</string>
-    <string name="app_name" translatable="false">Aniyomi</string>
+    <string name="app_name" translatable="false">Anichibi</string>
     <string name="name">Name</string>
     <string name="categories">Categories</string>
     <string name="manga">Manga</string>
@@ -163,6 +163,8 @@
     <string name="onboarding_action_next">Next</string>
     <string name="onboarding_action_finish">Get started</string>
     <string name="onboarding_action_skip">Skip</string>
+    <string name="onboarding_extensions_info">Configure the extensions you want to use. By default, only extensions in your system language will be shown.</string>
+    <string name="onboarding_extensions_enable_spanish">Enable Spanish extensions only</string>
     <string name="onboarding_storage_info">Select a folder where %1$s will store chapter downloads, backups, and more.\n\nA dedicated folder is recommended.\n\nSelected folder: %2$s</string>
     <string name="onboarding_storage_action_select">Select a folder</string>
     <string name="onboarding_storage_selection_required">A folder must be selected</string>

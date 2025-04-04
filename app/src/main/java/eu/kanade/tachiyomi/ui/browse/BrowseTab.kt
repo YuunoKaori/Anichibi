@@ -67,11 +67,11 @@ data object BrowseTab : Tab {
     override fun Content() {
         val context = LocalContext.current
 
-        // Hoisted for extensions tab's search bar
-        val mangaExtensionsScreenModel = rememberScreenModel { MangaExtensionsScreenModel() }
+        // Hoisted para las pestañas de extensiones
+        val mangaExtensionsScreenModel = rememberScreenModel { MangaExtensionsScreenModel(lazyLoad = true) }
         val mangaExtensionsState by mangaExtensionsScreenModel.state.collectAsState()
 
-        val animeExtensionsScreenModel = rememberScreenModel { AnimeExtensionsScreenModel() }
+        val animeExtensionsScreenModel = rememberScreenModel { AnimeExtensionsScreenModel(lazyLoad = true) }
         val animeExtensionsState by animeExtensionsScreenModel.state.collectAsState()
 
         val tabs = persistentListOf(
@@ -95,6 +95,15 @@ data object BrowseTab : Tab {
             onChangeAnimeSearchQuery = animeExtensionsScreenModel::search,
             scrollable = true,
         )
+        
+        // Lazy loading: solo cargar datos cuando la pestaña está seleccionada
+        LaunchedEffect(state.currentPage) {
+            when (state.currentPage) {
+                2 -> animeExtensionsScreenModel.findAvailableExtensions() // Anime Extensions tab
+                3 -> mangaExtensionsScreenModel.findAvailableExtensions() // Manga Extensions tab
+            }
+        }
+        
         LaunchedEffect(Unit) {
             switchToTabNumberChannel.receiveAsFlow()
                 .collectLatest { state.scrollToPage(it) }

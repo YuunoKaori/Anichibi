@@ -25,6 +25,7 @@ import dev.mihon.injekt.patchInjekt
 import eu.kanade.domain.DomainModule
 import eu.kanade.domain.SYDomainModule
 import eu.kanade.domain.base.BasePreferences
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
 import eu.kanade.tachiyomi.crash.CrashActivity
@@ -51,6 +52,7 @@ import eu.kanade.tachiyomi.util.system.notify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import logcat.AndroidLogcatLogger
 import logcat.LogPriority
 import logcat.LogcatLogger
@@ -104,6 +106,54 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         setupNotificationChannels()
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+
+        // Forzar la aplicación del idioma configurado
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            try {
+                val currentLocales = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+                if (!currentLocales.isEmpty) {
+                    // Si ya hay un idioma configurado, asegurarse de que se aplique
+                    val languageTag = currentLocales.get(0)?.toLanguageTag() ?: "es"
+                    setLocale(languageTag)
+                } else {
+                    // Si no hay idioma configurado, usar español por defecto
+                    setLocale("es")
+                    // También actualizar AppCompatDelegate
+                    val localeList = androidx.core.os.LocaleListCompat.forLanguageTags("es")
+                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(localeList)
+                }
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR, e) { "Error al configurar el idioma" }
+            }
+        }
+
+        // Inicializar repositorios por defecto
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            val animeRepo = Injekt.get<mihon.domain.extensionrepo.anime.repository.AnimeExtensionRepoRepository>()
+            val mangaRepo = Injekt.get<mihon.domain.extensionrepo.manga.repository.MangaExtensionRepoRepository>()
+
+            // Agregar repositorio de anime por defecto
+            if (animeRepo.getAll().isEmpty()) {
+                animeRepo.insertRepo(
+                    baseUrl = "https://raw.githubusercontent.com/Kohi-den/extensions/main",
+                    name = "Kohi-den Extensions",
+                    shortName = "Kohi-den",
+                    website = "https://github.com/Kohi-den/extensions",
+                    signingKeyFingerprint = "NOFINGERPRINT-1"
+                )
+            }
+
+            // Agregar repositorio de manga por defecto
+            if (mangaRepo.getAll().isEmpty()) {
+                mangaRepo.insertRepo(
+                    baseUrl = "https://raw.githubusercontent.com/keiyoushi/extensions/repo",
+                    name = "Keiyoushi Extensions",
+                    shortName = "Keiyoushi",
+                    website = "https://github.com/keiyoushi/extensions",
+                    signingKeyFingerprint = "NOFINGERPRINT-2"
+                )
+            }
+        }
 
         // Show notification to disable Incognito Mode when it's enabled
         basePreferences.incognitoMode().changes()
@@ -258,6 +308,30 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 unregisterReceiver(this)
                 registered = false
             }
+        }
+    }
+
+    /**
+     * Establece el idioma de la aplicación de manera forzada
+     */
+    private fun setLocale(languageCode: String) {
+        try {
+            val locale = java.util.Locale(languageCode)
+            java.util.Locale.setDefault(locale)
+            
+            val config = resources.configuration
+            config.setLocale(locale)
+            resources.updateConfiguration(config, resources.displayMetrics)
+            
+            createConfigurationContext(config)
+            
+            // También configurar las locales de AppCompatDelegate
+            val localeList = androidx.core.os.LocaleListCompat.forLanguageTags(languageCode)
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(localeList)
+            
+            logcat { "Idioma configurado a: $languageCode" }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e) { "Error al configurar el idioma: $languageCode" }
         }
     }
 }

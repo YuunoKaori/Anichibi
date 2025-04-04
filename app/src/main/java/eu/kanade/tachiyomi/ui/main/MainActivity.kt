@@ -123,6 +123,7 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
+import kotlinx.coroutines.delay
 
 class MainActivity : BaseActivity() {
 
@@ -195,6 +196,13 @@ class MainActivity : BaseActivity() {
                     this@MainActivity.navigator = navigator
 
                     if (isLaunch) {
+                        // Cargar automáticamente la pestaña Ver al iniciar la app
+                        lifecycleScope.launch { 
+                            // Esperar un momento para que la UI se cargue
+                            delay(1000)
+                            HomeScreen.openTab(HomeScreen.Tab.Ver)
+                        }
+                        
                         // Set start screen
                         handleIntentAction(intent, navigator)
 

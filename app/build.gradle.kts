@@ -20,7 +20,7 @@ android {
     namespace = "eu.kanade.tachiyomi"
 
     defaultConfig {
-        applicationId = "xyz.jmir.tachiyomi.mi"
+        applicationId = "com.animefantasy.fun"
 
         versionCode = 128
         versionName = "0.16.4.3"
@@ -62,7 +62,8 @@ android {
     buildTypes {
         named("debug") {
             versionNameSuffix = "-${getCommitCount()}"
-            applicationIdSuffix = ".debug"
+            // Comentamos el applicationIdSuffix para mantener el mismo ID en debug y release
+            // applicationIdSuffix = ".debug"
             isPseudoLocalesEnabled = true
         }
         named("release") {
@@ -75,16 +76,17 @@ android {
             buildConfigField("boolean", "PREVIEW", "true")
 
             signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks.add("release")
+            // matchingFallbacks.add("release")
             val debugType = getByName("debug")
             versionNameSuffix = debugType.versionNameSuffix
+            // Al comentar el applicationIdSuffix en debug, esto ya no añadirá sufijo
             applicationIdSuffix = debugType.applicationIdSuffix
         }
         create("benchmark") {
             initWith(getByName("release"))
 
             signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks.add("release")
+            // matchingFallbacks.add("release")
             isDebuggable = false
             isProfileable = true
             versionNameSuffix = "-benchmark"

@@ -63,21 +63,32 @@ object LocaleHelper {
             "zh-TW" -> Locale.forLanguageTag("zh-Hant")
             else -> Locale.forLanguageTag(lang)
         }
-        return locale!!.getDisplayName(locale).replaceFirstChar { it.uppercase(locale) }
+        
+        if (locale == null) {
+            return lang
+        }
+        
+        return try {
+            locale.getDisplayName(locale).replaceFirstChar { it.uppercase(locale) }
+        } catch (e: Exception) {
+            // En caso de error, al menos devolver el código de idioma
+            lang
+        }
     }
 
     /**
      * Return the default languages enabled for the sources.
      */
     fun getDefaultEnabledLanguages(): Set<String> {
-        return setOf("all", "en", Locale.getDefault().language)
+        return setOf("es", Locale.getDefault().language)
     }
 
     /**
      * Return English display string from string language code
      */
     fun getSimpleLocaleDisplayName(): String {
-        return LocaleListCompat.getDefault()[0]!!.displayLanguage
+        val default = LocaleListCompat.getDefault()[0]
+        return default?.displayLanguage ?: "English"
     }
 }
 

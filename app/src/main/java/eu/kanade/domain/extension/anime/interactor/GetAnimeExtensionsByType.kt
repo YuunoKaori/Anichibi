@@ -52,7 +52,16 @@ class GetAnimeExtensionsByType(
                             )
                         }
                 }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+                .sortedWith(
+                    compareBy<AnimeExtension.Available> { 
+                        // Priorizar JKanime y AnimeFlv
+                        when (it.name.lowercase()) {
+                            "jkanime" -> "0"
+                            "animeflv" -> "1"
+                            else -> "2${it.name.lowercase()}"
+                        }
+                    }
+                )
 
             AnimeExtensions(updates, installed, available, untrusted)
         }

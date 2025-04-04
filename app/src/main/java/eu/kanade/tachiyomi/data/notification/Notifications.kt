@@ -79,6 +79,10 @@ object Notifications {
     const val ID_UPDATES_TO_EXTS = -401
     const val ID_EXTENSION_INSTALLER = -402
 
+    // Notificación para reinicio tras cambio de extensión predeterminada
+    const val CHANNEL_EXTENSION_CHANGE = "ext_change_channel"
+    const val ID_EXTENSION_CHANGE = -403
+
     private val deprecatedChannels = listOf(
         "downloader_channel",
         "downloader_complete_channel",
@@ -169,6 +173,10 @@ object Notifications {
                 buildNotificationChannel(CHANNEL_EXTENSIONS_UPDATE, IMPORTANCE_DEFAULT) {
                     setGroup(GROUP_APK_UPDATES)
                     setName(context.stringResource(MR.strings.channel_ext_updates))
+                },
+                buildNotificationChannel(CHANNEL_EXTENSION_CHANGE, IMPORTANCE_DEFAULT) {
+                    setGroup(GROUP_APK_UPDATES)
+                    setName("Cambios de extensión")
                 },
             ),
         )

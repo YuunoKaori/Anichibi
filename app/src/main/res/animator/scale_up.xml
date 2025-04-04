@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <objectAnimator
+        android:propertyName="scaleX"
+        android:duration="300"
+        android:valueFrom="0.8"
+        android:valueTo="1.0"
+        android:valueType="floatType"
+        android:interpolator="@android:interpolator/fast_out_slow_in"/>
+    <objectAnimator
+        android:propertyName="scaleY"
+        android:duration="300"
+        android:valueFrom="0.8"
+        android:valueTo="1.0"
+        android:valueType="floatType"
+        android:interpolator="@android:interpolator/fast_out_slow_in"/>
+    <objectAnimator
+        android:propertyName="fillColor"
+        android:duration="300"
+        android:valueFrom="#000000"
+        android:valueTo="#3366FF"
+        android:valueType="colorType"
+        android:interpolator="@android:interpolator/fast_out_slow_in"/>
+</set> 

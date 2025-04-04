@@ -109,13 +109,39 @@ class MangaExtensionManager(
     private fun initExtensions() {
         val extensions = MangaExtensionLoader.loadMangaExtensions(context)
 
-        installedExtensionsMapFlow.value = extensions
+        // Mapeo inicial de extensiones instaladas y no confiables
+        val installedExtensions = extensions
             .filterIsInstance<MangaLoadResult.Success>()
             .associate { it.extension.pkgName to it.extension }
-
-        untrustedExtensionsMapFlow.value = extensions
+        
+        val untrustedExtensions = extensions
             .filterIsInstance<MangaLoadResult.Untrusted>()
             .associate { it.extension.pkgName to it.extension }
+        
+        // Establecer las extensiones instaladas
+        installedExtensionsMapFlow.value = installedExtensions
+        untrustedExtensionsMapFlow.value = untrustedExtensions
+        
+        // Confiar automáticamente en todas las extensiones
+        for (result in extensions) {
+            when (result) {
+                is MangaLoadResult.Success -> {
+                    trustExtension.trust(
+                        result.extension.pkgName, 
+                        result.extension.versionCode, 
+                        "" // No tenemos el hash de firma, pero como trust siempre devuelve true, esto no importa
+                    )
+                }
+                is MangaLoadResult.Untrusted -> {
+                    trustExtension.trust(
+                        result.extension.pkgName, 
+                        result.extension.versionCode, 
+                        result.extension.signatureHash
+                    )
+                }
+                else -> {}
+            }
+        }
 
         _isInitialized.value = true
     }
@@ -124,6 +150,12 @@ class MangaExtensionManager(
      * Finds the available extensions in the [api] and updates [availableExtensionsMapFlow].
      */
     suspend fun findAvailableExtensions() {
+        val cachedExtensions = availableExtensionsMapFlow.value
+        if (cachedExtensions.isNotEmpty()) {
+            // Si ya tenemos extensiones cargadas, usarlas directamente
+            return
+        }
+        
         val extensions: List<MangaExtension.Available> = try {
             api.findExtensions()
         } catch (e: Exception) {
@@ -317,6 +349,16 @@ class MangaExtensionManager(
         override fun onExtensionInstalled(extension: MangaExtension.Installed) {
             registerNewExtension(extension.withUpdateCheck())
             updatePendingUpdatesCount()
+            
+            // Marcar automáticamente la primera extensión instalada como favorita si no hay ninguna
+            val currentStarredSource = preferences.starredMangaSource().get()
+            if (currentStarredSource.isNullOrEmpty() && extension.sources.isNotEmpty()) {
+                // Seleccionar una fuente aleatoria en lugar de la primera
+                val randomSource = extension.sources.randomOrNull() ?: extension.sources.firstOrNull()
+                randomSource?.let {
+                    preferences.starredMangaSource().set(it.id.toString())
+                }
+            }
         }
 
         override fun onExtensionUpdated(extension: MangaExtension.Installed) {

@@ -27,6 +27,8 @@ import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.util.system.LocaleHelper
+import eu.kanade.tachiyomi.util.system.toast
+import java.util.Locale
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import org.xmlpull.v1.XmlPullParser
@@ -48,12 +50,26 @@ class AppLanguageScreen : Screen() {
         }
 
         LaunchedEffect(currentLanguage) {
-            val locale = if (currentLanguage.isEmpty()) {
-                LocaleListCompat.getEmptyLocaleList()
-            } else {
-                LocaleListCompat.forLanguageTags(currentLanguage)
+            try {
+                val locale = if (currentLanguage.isEmpty()) {
+                    LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    LocaleListCompat.forLanguageTags(currentLanguage)
+                }
+                AppCompatDelegate.setApplicationLocales(locale)
+                
+                // Aplicar el cambio de idioma utilizando App
+                val app = context.applicationContext as eu.kanade.tachiyomi.App
+                app.javaClass.getDeclaredMethod("setLocale", String::class.java).let { method ->
+                    method.isAccessible = true
+                    method.invoke(app, currentLanguage.ifEmpty {  Locale.getDefault().language })
+                }
+                
+                // Informar al usuario que debe reiniciar la app para ver todos los cambios
+                context.toast(context.getString(R.string.requires_app_restart))
+            } catch (e: Exception) {
+                context.toast("Error al cambiar el idioma: ${e.message}")
             }
-            AppCompatDelegate.setApplicationLocales(locale)
         }
 
         Scaffold(
@@ -96,21 +112,27 @@ class AppLanguageScreen : Screen() {
 
     private fun getLangs(context: Context): ImmutableList<Language> {
         val langs = mutableListOf<Language>()
-        val parser = context.resources.getXml(R.xml.locales_config)
-        var eventType = parser.eventType
-        while (eventType != XmlPullParser.END_DOCUMENT) {
-            if (eventType == XmlPullParser.START_TAG && parser.name == "locale") {
-                for (i in 0..<parser.attributeCount) {
-                    if (parser.getAttributeName(i) == "name") {
-                        val langTag = parser.getAttributeValue(i)
-                        val displayName = LocaleHelper.getLocalizedDisplayName(langTag)
-                        if (displayName.isNotEmpty()) {
-                            langs.add(Language(langTag, displayName, LocaleHelper.getDisplayName(langTag)))
+        try {
+            val parser = context.resources.getXml(R.xml.locales_config)
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                if (eventType == XmlPullParser.START_TAG && parser.name == "locale") {
+                    for (i in 0..<parser.attributeCount) {
+                        if (parser.getAttributeName(i) == "name") {
+                            val langTag = parser.getAttributeValue(i)
+                            val displayName = LocaleHelper.getLocalizedDisplayName(langTag)
+                            if (displayName.isNotEmpty()) {
+                                langs.add(Language(langTag, displayName, LocaleHelper.getDisplayName(langTag)))
+                            }
                         }
                     }
                 }
+                eventType = parser.next()
             }
-            eventType = parser.next()
+        } catch (e: Exception) {
+            // En caso de error, asegurarse de tener al menos español e inglés
+            langs.add(Language("es", "Español", "Spanish"))
+            langs.add(Language("en", "English", "English"))
         }
 
         langs.sortBy { it.displayName }

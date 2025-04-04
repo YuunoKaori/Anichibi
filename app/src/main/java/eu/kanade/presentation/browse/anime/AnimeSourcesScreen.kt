@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,9 +19,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.browse.anime.components.BaseAnimeSourceItem
 import eu.kanade.tachiyomi.ui.browse.anime.source.AnimeSourcesScreenModel
 import eu.kanade.tachiyomi.ui.browse.anime.source.browse.BrowseAnimeSourceScreenModel.Listing
@@ -37,6 +43,9 @@ import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.presentation.core.theme.header
 import tachiyomi.presentation.core.util.plus
 import tachiyomi.source.local.entries.anime.LocalAnimeSource
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import kotlinx.coroutines.launch
 
 @Composable
 fun AnimeSourcesScreen(
@@ -117,6 +126,11 @@ private fun AnimeSourceItem(
     onClickPin: (AnimeSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sourcePreferences: SourcePreferences = remember { Injekt.get() }
+    val starredSourceId = sourcePreferences.starredAnimeSource().get()?.toLongOrNull()
+    val isStarred = starredSourceId == source.id
+    val scope = rememberCoroutineScope()
+
     BaseAnimeSourceItem(
         modifier = modifier,
         source = source,
@@ -133,6 +147,40 @@ private fun AnimeSourceItem(
                     )
                 }
             }
+            // Botón de estrella para marcar como fuente predeterminada
+            val starIcon = if (isStarred) {
+                Icons.Filled.Star
+            } else {
+                Icons.Outlined.Star
+            }
+            val starTint = if (isStarred) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onBackground.copy(alpha = SECONDARY_ALPHA)
+            }
+            val starDescription = if (isStarred) {
+                "Quitar como predeterminada"
+            } else {
+                "Marcar como predeterminada"
+            }
+            
+            IconButton(
+                onClick = {
+                    // Siempre permitir cambiar de extensión predeterminada
+                    sourcePreferences.starredAnimeSource().set(source.id.toString())
+                    // Forzar recomposición inmediata
+                    scope.launch {
+                        sourcePreferences.starredAnimeSource().changes().collect { }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = starIcon,
+                    tint = starTint,
+                    contentDescription = starDescription,
+                )
+            }
+            
             AnimeSourcePinButton(
                 isPinned = Pin.Pinned in source.pin,
                 onClick = { onClickPin(source) },

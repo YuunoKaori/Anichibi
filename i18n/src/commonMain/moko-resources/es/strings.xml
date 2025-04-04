@@ -741,7 +741,8 @@
     <string name="onboarding_action_skip">Saltar</string>
     <string name="onboarding_action_next">Siguiente</string>
     <string name="onboarding_description">Lo primero de todo es dejar las cosas a tu gusto. Siempre puedes volver a cambiarlas más tarde en los ajustes.</string>
-    <string name="no_location_set">Todavía no has proporcionado ninguna carpeta</string>
+    <string name="onboarding_extensions_info">Configura las extensiones que quieres usar. Por defecto, solo se mostrarán las extensiones en el idioma de tu sistema.</string>
+    <string name="onboarding_extensions_enable_spanish">Habilitar solo extensiones en español</string>
     <string name="onboarding_storage_info">Seleccione una carpeta donde %1$s almacenará las descargas de capítulos, copias de seguridad y otras cosas.
 \n
 \nTe recomendamos usar una carpeta dedicada.

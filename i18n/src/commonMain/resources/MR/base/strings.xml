@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_bottom_nav_no_manga">Mover manga a la pestaña más</string>
+    <string name="pref_bottom_nav_no_updates">Mover actualizaciones a la pestaña más</string>
+    <string name="pref_bottom_nav_no_history">Mover historial a la pestaña más</string>
+    <string name="pref_bottom_nav_no_browse">Mover explorar a la pestaña más</string>
+    <string name="pref_bottom_nav_group_and_updates">Agrupar pestañas y mover actualizaciones</string>
+    <string name="label_recent">Recientes</string>
+    <string name="history">Historial</string>
+</resources> 
