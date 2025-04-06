@@ -4,17 +4,17 @@
     android:viewportHeight="512"
     android:width="256dp"
     android:height="256dp">
-    
+
     <!-- Fondo circular -->
     <path
         android:pathData="M256,32 A224,224 0 1,0 256,480 A224,224 0 1,0 256,32z"
         android:fillColor="#3F51B5" />
-        
+
     <!-- Círculo interior -->
     <path
         android:pathData="M256,56 A200,200 0 1,0 256,456 A200,200 0 1,0 256,56z"
         android:fillColor="#7986CB" />
-    
+
     <!-- Carácter "幻" (fantasía/ilusión) optimizado -->
     <path
         android:pathData="M64,64h384v42.6h-170.6v42.6h181.3v42.6h-181.3v42.6h181.3v42.6h-384v-42.6h170.6v-42.6h-170.6v-42.6h170.6v-42.6h-170.6v-42.6z"
