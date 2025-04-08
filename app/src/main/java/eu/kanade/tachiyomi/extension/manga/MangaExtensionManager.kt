@@ -353,11 +353,9 @@ class MangaExtensionManager(
             // Marcar automáticamente la primera extensión instalada como favorita si no hay ninguna
             val currentStarredSource = preferences.starredMangaSource().get()
             if (currentStarredSource.isNullOrEmpty() && extension.sources.isNotEmpty()) {
-                // Seleccionar una fuente aleatoria en lugar de la primera
-                val randomSource = extension.sources.randomOrNull() ?: extension.sources.firstOrNull()
-                randomSource?.let {
-                    preferences.starredMangaSource().set(it.id.toString())
-                }
+                // Tomamos la primera fuente de la extensión y la marcamos como estrella
+                val sourceToStar = extension.sources.first()
+                preferences.starredMangaSource().set(sourceToStar.id.toString())
             }
         }
 

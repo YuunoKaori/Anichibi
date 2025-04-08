@@ -67,7 +67,6 @@ import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import tachiyomi.domain.source.anime.interactor.GetRemoteAnime
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.i18n.MR
@@ -80,10 +79,8 @@ import uy.kohesive.injekt.api.get
 import eu.kanade.tachiyomi.ui.browse.anime.source.browse.SourceFilterAnimeDialog
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import java.io.Serializable
-import kotlinx.coroutines.flow.collectLatest
 
-class VerTab : Tab, Serializable {
+class VerTab : Tab {
 
     override val options: TabOptions
         @Composable
@@ -104,108 +101,22 @@ class VerTab : Tab, Serializable {
         val uriHandler = LocalUriHandler.current
         val haptic = LocalHapticFeedback.current
         val scope = rememberCoroutineScope()
-        
-        // Obtener las dependencias localmente en el composable en lugar de usar propiedades de clase
-        val sourcePreferences = remember { Injekt.get<SourcePreferences>() }
-        val sourceManager = remember { Injekt.get<AnimeSourceManager>() }
-        val extensionManager = remember { Injekt.get<eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager>() }
-        
-        // Estado para mantener el control de las extensiones instaladas
-        var installedExtensions by remember { mutableStateOf(extensionManager.installedExtensionsFlow.value) }
-        
-        // Estado para controlar la primera carga
-        var isInitialLoad by remember { mutableStateOf(true) }
-        
-        // Observar cambios en las extensiones instaladas
-        LaunchedEffect(Unit) {
-            extensionManager.installedExtensionsFlow
-                .collectLatest { extensions ->
-                    installedExtensions = extensions
-                }
-        }
+        val sourcePreferences: SourcePreferences = Injekt.get()
+        val sourceManager: AnimeSourceManager = Injekt.get()
         
         // Obtener la fuente destacada de las preferencias
         val starredSourceId = sourcePreferences.starredAnimeSource().get()?.toLongOrNull()
         
-        // Estado para forzar la recomposición cuando cambie la extensión
-        var forceRecompose by remember { mutableStateOf(0) }
-        
         val snackbarHostState = remember { SnackbarHostState() }
 
-        // Observar cambios en la fuente destacada y forzar recomposición cuando cambie
-        LaunchedEffect(Unit) {
-            sourcePreferences.starredAnimeSource().changes()
-                .collectLatest { newSourceId ->
-                    // Obtener información de la fuente anterior y actual
-                    val oldSourceName = starredSourceId?.let { id -> 
-                        sourceManager.get(id)?.name ?: "Unknown"
-                    } ?: "Unknown"
-                    
-                    val newSource = newSourceId?.toLongOrNull()?.let { sourceManager.get(it) }
-                    val newSourceName = newSource?.name ?: "Unknown"
-                    
-                    // Incrementar para forzar recomposición (al cambiar este valor, la interfaz se actualizará)
-                    forceRecompose = forceRecompose + 1
-                    
-                    // Ya no estamos en la carga inicial
-                    isInitialLoad = false
-                }
-        }
-
-        // Seleccionar automáticamente la primera extensión disponible si:
-        // 1. No hay una fuente con estrella seleccionada
-        // 2. Hay extensiones instaladas
-        // 3. Controlar que solo se haga una vez
-        var didSelectInitialSource by remember { mutableStateOf(false) }
-        
-        LaunchedEffect(installedExtensions, starredSourceId) {
-            if (starredSourceId == null && installedExtensions.isNotEmpty() && !didSelectInitialSource) {
-                // Obtener la primera fuente disponible
-                val firstSource = installedExtensions.firstOrNull()?.sources?.firstOrNull()
-                
-                if (firstSource != null) {
-                    // Establecer esta fuente como la predeterminada
-                    sourcePreferences.starredAnimeSource().set(firstSource.id.toString())
-                    
-                    // Marcar que ya se seleccionó una extensión inicial
-                    didSelectInitialSource = true
-                }
-            }
-        }
-        
-        // Redirigir a la pantalla de extensiones SOLO si no hay extensiones instaladas
-        // y no estamos en proceso de seleccionar una
-        LaunchedEffect(installedExtensions) {
-            if (installedExtensions.isEmpty()) {
-                scope.launch {
-                    HomeScreen.openTab(HomeScreen.Tab.Browse(toExtensions = true, anime = true))
-                }
-            }
-        }
-
-        // Obtener nuevamente el ID después de posible cambio
-        val currentStarredSourceId = sourcePreferences.starredAnimeSource().get()?.toLongOrNull()
-        
-        // Clave única para forzar la recreación completa del screenModel cuando cambia la fuente
-        val screenModelKey = remember(currentStarredSourceId, forceRecompose) { "$currentStarredSourceId-$forceRecompose" }
-
-        if (currentStarredSourceId != null) {
+        if (starredSourceId != null) {
             // Si hay una fuente con estrella, mostrar su contenido directamente en la pestaña
-            // Usar la clave para forzar la recreación del screenModel cuando cambia la fuente
-            val screenModel = rememberScreenModel(screenModelKey) { 
+            val screenModel = rememberScreenModel { 
                 BrowseAnimeSourceScreenModel(
-                    sourceId = currentStarredSourceId,
+                    sourceId = starredSourceId,
                     listingQuery = GetRemoteAnime.QUERY_POPULAR
                 )
             }
-            
-            // Asegurar que se cargue el contenido cada vez que cambia la fuente
-            LaunchedEffect(screenModelKey) {
-                // Refrescar datos completamente cuando cambia la fuente seleccionada
-                screenModel.resetFilters()
-                screenModel.setListing(Listing.Popular)
-            }
-            
             val state by screenModel.state.collectAsState()
             val pagingFlow by screenModel.animePagerFlowFlow.collectAsState()
 
@@ -370,6 +281,15 @@ class VerTab : Tab, Serializable {
             }
         } else {
             // Si no hay fuente con estrella, mostrar un mensaje
+            LaunchedEffect(Unit) {
+                context.toast("No hay una extensión de anime destacada. Por favor, marca una con estrella.")
+                
+                // Navegar a la pestaña Browse y mostrar la sección de extensiones de anime
+                scope.launch {
+                    HomeScreen.openTab(HomeScreen.Tab.Browse(toExtensions = true, anime = true))
+                }
+            }
+            
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
