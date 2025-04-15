@@ -80,12 +80,8 @@ import uy.kohesive.injekt.api.get
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.flow.collectLatest
-import java.io.Serializable
 
-class LeerTab : Tab, Serializable {
-
-    private val preferences: SourcePreferences = Injekt.get()
-    private val extensionManager: MangaExtensionManager = Injekt.get()
+class LeerTab : Tab {
 
     @OptIn(ExperimentalAnimationGraphicsApi::class)
     override val options: TabOptions

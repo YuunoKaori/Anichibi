@@ -81,9 +81,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
-import java.io.Serializable
 
-class VerTab : Tab, Serializable {
+class VerTab : Tab {
 
     override val options: TabOptions
         @Composable
