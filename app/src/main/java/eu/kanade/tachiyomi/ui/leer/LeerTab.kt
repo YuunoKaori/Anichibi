@@ -79,8 +79,10 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.flow.collectLatest
+import java.io.Serializable
 
-class LeerTab : Tab {
+class LeerTab : Tab, Serializable {
 
     private val preferences: SourcePreferences = Injekt.get()
     private val extensionManager: MangaExtensionManager = Injekt.get()
@@ -105,32 +107,100 @@ class LeerTab : Tab {
         val uriHandler = LocalUriHandler.current
         val haptic = LocalHapticFeedback.current
         val scope = rememberCoroutineScope()
-        val sourcePreferences: SourcePreferences = Injekt.get()
-        val sourceManager: MangaSourceManager = Injekt.get()
+        
+        // Obtener las dependencias localmente en el composable en lugar de usar las propiedades de clase
+        val sourcePreferences = remember { Injekt.get<SourcePreferences>() }
+        val sourceManager = remember { Injekt.get<MangaSourceManager>() }
+        val extensionManager = remember { Injekt.get<MangaExtensionManager>() }
+        
+        // Estado para mantener el control de las extensiones instaladas
+        var installedExtensions by remember { mutableStateOf(extensionManager.installedExtensionsFlow.value) }
+        
+        // Estado para controlar la primera carga
+        var isInitialLoad by remember { mutableStateOf(true) }
+        
+        // Observar cambios en las extensiones instaladas
+        LaunchedEffect(Unit) {
+            extensionManager.installedExtensionsFlow
+                .collectLatest { extensions ->
+                    installedExtensions = extensions
+                }
+        }
         
         // Obtener la fuente destacada de las preferencias
         val starredSourceId = sourcePreferences.starredMangaSource().get()?.toLongOrNull()
         
+        // Estado para forzar la recomposición cuando cambie la extensión
+        var forceRecompose by remember { mutableStateOf(0) }
+        
         val snackbarHostState = remember { SnackbarHostState() }
 
+        // Observar cambios en la fuente destacada y forzar recomposición cuando cambie
         LaunchedEffect(Unit) {
-            // Verificar si hay extensiones instaladas
-            if (extensionManager.installedExtensionsFlow.value.isEmpty()) {
-                // Si no hay extensiones, navegar a la pantalla de extensiones
+            sourcePreferences.starredMangaSource().changes()
+                .collectLatest { newSourceId ->
+                    // Incrementar para forzar recomposición (al cambiar este valor, la interfaz se actualizará)
+                    forceRecompose = forceRecompose + 1
+                    
+                    // Ya no estamos en la carga inicial
+                    isInitialLoad = false
+                }
+        }
+
+        // Seleccionar automáticamente la primera extensión disponible si:
+        // 1. No hay una fuente con estrella seleccionada
+        // 2. Hay extensiones instaladas
+        // 3. Controlar que solo se haga una vez
+        var didSelectInitialSource by remember { mutableStateOf(false) }
+        
+        LaunchedEffect(installedExtensions, starredSourceId) {
+            if (starredSourceId == null && installedExtensions.isNotEmpty() && !didSelectInitialSource) {
+                // Obtener la primera fuente disponible
+                val firstSource = installedExtensions.firstOrNull()?.sources?.firstOrNull()
+                
+                if (firstSource != null) {
+                    // Establecer esta fuente como la predeterminada
+                    sourcePreferences.starredMangaSource().set(firstSource.id.toString())
+                    
+                    // Marcar que ya se seleccionó una extensión inicial
+                    didSelectInitialSource = true
+                }
+            }
+        }
+        
+        // Redirigir a la pantalla de extensiones SOLO si no hay extensiones instaladas
+        // y no estamos en proceso de seleccionar una
+        LaunchedEffect(installedExtensions) {
+            if (installedExtensions.isEmpty()) {
                 scope.launch {
                     HomeScreen.openTab(HomeScreen.Tab.Browse(toExtensions = true, anime = false))
                 }
             }
         }
 
-        if (starredSourceId != null) {
+        // Obtener nuevamente el ID después de posible cambio
+        val currentStarredSourceId = sourcePreferences.starredMangaSource().get()?.toLongOrNull()
+        
+        // Clave única para forzar la recreación completa del screenModel cuando cambia la fuente
+        val screenModelKey = remember(currentStarredSourceId, forceRecompose) { "$currentStarredSourceId-$forceRecompose" }
+
+        if (currentStarredSourceId != null) {
             // Si hay una fuente con estrella, mostrar su contenido directamente en la pestaña
-            val screenModel = rememberScreenModel { 
+            // Usar la clave para forzar la recreación del screenModel cuando cambia la fuente
+            val screenModel = rememberScreenModel(screenModelKey) { 
                 BrowseMangaSourceScreenModel(
-                    sourceId = starredSourceId,
+                    sourceId = currentStarredSourceId,
                     listingQuery = GetRemoteManga.QUERY_POPULAR
                 )
             }
+            
+            // Asegurar que se cargue el contenido cada vez que cambia la fuente
+            LaunchedEffect(screenModelKey) {
+                // Refrescar datos completamente cuando cambia la fuente seleccionada
+                screenModel.resetFilters()
+                screenModel.setListing(Listing.Popular)
+            }
+            
             val state by screenModel.state.collectAsState()
             val pagingFlow by screenModel.mangaPagerFlowFlow.collectAsState()
 
@@ -298,15 +368,6 @@ class LeerTab : Tab {
             }
         } else {
             // Si no hay fuente con estrella, mostrar un mensaje
-            LaunchedEffect(Unit) {
-                context.toast("No hay una extensión de manga destacada. Por favor, marca una con estrella.")
-                
-                // Navegar a la pestaña Browse y mostrar la sección de extensiones de manga
-                scope.launch {
-                    HomeScreen.openTab(HomeScreen.Tab.Browse(toExtensions = true, anime = false))
-                }
-            }
-            
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
