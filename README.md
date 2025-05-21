@@ -35,15 +35,6 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Before reporting a new issue, you may want to check the resources from the Aniyomi project, such as their [FAQ](https://aniyomi.org/docs/faq/general), [changelog](https://aniyomi.org/changelogs/), and existing [issues](https://github.com/aniyomiorg/aniyomi/issues). For questions, consider joining the Aniyomi [Discord server](https://discord.gg/F32UjdJZrR) as this project is based on theirs.
 
-### Credits
-
-* **YuunoKaori** ([GitHub](https://github.com/aniyomiorg/aniyomi)
-* Thank you to the teams behind Mihon and Aniyomi, and all their contributors!
-
-* <a href="https://github.com/aniyomiorg/aniyomi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=aniyomiorg/aniyomi" alt="Aniyomi app contributors" title="Aniyomi app contributors" width="800"/>
-</a>
-
 ### Disclaimer
 
 The developer(s) of this application does not have any affiliation with the content providers available, and this application hosts zero content.
