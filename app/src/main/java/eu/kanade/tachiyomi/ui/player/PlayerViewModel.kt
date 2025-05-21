@@ -587,12 +587,7 @@ class PlayerViewModel @JvmOverloads constructor(
 
     private val showStatusBar = playerPreferences.showSystemStatusBar().get()
     fun showControls() {
-        if (sheetShown.value != Sheets.None ||
-            panelShown.value != Panels.None ||
-            dialogShown.value != Dialogs.None
-        ) {
-            return
-        }
+        // Mostrar los controles incluso si hay otro diálogo abierto (para el botón central del D-pad)
         if (showStatusBar) {
             activity.windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
         }
@@ -1232,8 +1227,37 @@ class PlayerViewModel @JvmOverloads constructor(
     private fun initEpisodeList(anime: Anime): List<Episode> {
         val episodes = runBlocking { getEpisodesByAnimeId.await(anime.id) }
 
+        // Detectar si estamos en Android TV
+        val isAndroidTV = activity.packageManager.hasSystemFeature("android.software.leanback")
+        
+        // Para Android TV, usar siempre ordenamiento por número de episodio ascendente
+        // independientemente de la configuración del anime
+        val sortDescending = if (isAndroidTV) {
+            false // Ascendente para Android TV
+        } else {
+            anime.sortDescending()
+        }
+        
+        // Para Android TV, usar siempre ordenamiento por número
+        val sorting = if (isAndroidTV) {
+            Anime.EPISODE_SORTING_NUMBER
+        } else {
+            anime.sorting
+        }
+        
+        // Crear una copia temporal del anime con el ordenamiento para Android TV
+        val animeForSort = if (isAndroidTV) {
+            anime.copy(
+                episodeFlags = (anime.episodeFlags and Anime.EPISODE_SORTING_MASK.inv()) or 
+                               Anime.EPISODE_SORTING_NUMBER or
+                               Anime.EPISODE_SORT_ASC
+            )
+        } else {
+            anime
+        }
+
         return episodes
-            .sortedWith(getEpisodeSort(anime, sortDescending = false))
+            .sortedWith(getEpisodeSort(animeForSort, sortDescending))
             .run {
                 if (basePreferences.downloadedOnly().get()) {
                     filterDownloadedEpisodes(anime)

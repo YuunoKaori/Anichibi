@@ -23,6 +23,9 @@
         <item name="android:enforceStatusBarContrast" tools:targetApi="Q">false</item>
         <item name="android:icon">@mipmap/ic_launcher</item>
         <item name="android:roundIcon">@mipmap/ic_launcher_round</item>
+        
+        <!-- TV Navigation Support -->
+        <item name="android:defaultFocusHighlightEnabled" tools:targetApi="26">true</item>
 
 
         <!-- Theme Colors -->
@@ -104,6 +107,11 @@
     <!--== Default Theme ==-->
     <style name="Theme.Tachiyomi" parent="Base.Theme.Tachiyomi">
         <item name="android:localeConfig">@xml/locales_config</item>
+        
+        <!-- Configuración optimizada para D-pad en TV y navegación por teclado -->
+        <item name="android:defaultFocusHighlightEnabled" tools:targetApi="26">true</item>
+        <item name="android:spotShadowAlpha">0.18</item>
+        <item name="android:ambientShadowAlpha">0.12</item>
     </style>
 
     <!-- Monet theme only support S+ -->
@@ -635,7 +643,7 @@
 
     <!--== Splash Theme ==-->
     <style name="Theme.Tachiyomi.SplashScreen" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_ani_monochrome_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="windowSplashScreenBackground">?attr/colorSurface</item>
         <item name="postSplashScreenTheme">@style/Theme.Tachiyomi</item>
         <item name="android:localeConfig">@xml/locales_config</item>

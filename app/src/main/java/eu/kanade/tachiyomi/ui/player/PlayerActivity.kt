@@ -814,8 +814,15 @@ class PlayerActivity : BaseActivity() {
                 viewModel.changeVolumeBy(-1)
                 viewModel.displayVolumeSlider()
             }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> viewModel.handleLeftDoubleTap()
-            KeyEvent.KEYCODE_DPAD_LEFT -> viewModel.handleRightDoubleTap()
+            KeyEvent.KEYCODE_DPAD_LEFT -> viewModel.handleLeftDoubleTap()
+            KeyEvent.KEYCODE_DPAD_RIGHT -> viewModel.handleRightDoubleTap()
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
+                if (!viewModel.controlsShown.value) {
+                    viewModel.showControls()
+                } else {
+                    viewModel.pauseUnpause()
+                }
+            }
             KeyEvent.KEYCODE_SPACE -> viewModel.pauseUnpause()
             KeyEvent.KEYCODE_MEDIA_STOP -> finishAndRemoveTask()
 

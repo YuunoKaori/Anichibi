@@ -1,10 +1,13 @@
 package tachiyomi.presentation.core.util
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,25 +18,95 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
 import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 
 fun Modifier.selectedBackground(isSelected: Boolean): Modifier = if (isSelected) {
     composed {
+        val context = LocalContext.current
+        val isAndroidTV = remember {
+            context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+        
+        if (isAndroidTV) {
+            // Borde cian para selección en Android TV para mayor visibilidad con D-pad
+            val borderColor = Color(0xFF00E5FF) // Cyan más saturado
+            Modifier.drawWithCache {
+                val outline = RoundedCornerShape(4.dp).createOutline(size, layoutDirection, this)
+                onDrawWithContent {
+                    drawContent()
+                    drawOutline(
+                        outline = outline,
+                        color = borderColor,
+                        style = Stroke(width = 5f) // Aumentar el ancho del borde para mejor visibilidad
+                    )
+                }
+            }
+        } else {
+            // Comportamiento normal para dispositivos móviles
         val alpha = if (isSystemInDarkTheme()) 0.16f else 0.22f
         val color = MaterialTheme.colorScheme.secondary.copy(alpha = alpha)
         Modifier.drawBehind {
             drawRect(color)
+            }
         }
     }
 } else {
     this
+}
+
+/**
+ * Modifier que añade un borde de 1px cuando un elemento está enfocado en Android TV.
+ * En dispositivos Android TV, esto mejora la visibilidad de la navegación con D-pad.
+ */
+fun Modifier.hoverBorder(
+    borderColor: Color = Color.White.copy(alpha = 0.9f),
+    cornerRadius: Int = 4,
+): Modifier = composed {
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Aplicar SOLO para Android TV (los dispositivos móviles no necesitan esto)
+    if (isAndroidTV) {
+        var isFocused by remember { mutableStateOf(false) }
+        
+        this
+            .onFocusChanged { isFocused = it.isFocused }
+            .drawWithCache {
+                val outline = RoundedCornerShape(cornerRadius.dp)
+                    .createOutline(size, layoutDirection, this)
+                onDrawWithContent {
+                    drawContent()
+                    if (isFocused) {
+                        // Dibujar un borde alrededor cuando está enfocado
+                        drawOutline(
+                            outline = outline,
+                            color = borderColor,
+                            style = Stroke(width = 3f) // Aumentar el ancho para mejor visibilidad
+                        )
+                    }
+                }
+            }
+    } else {
+        this
+    }
 }
 
 fun Modifier.secondaryItemAlpha(): Modifier = this.alpha(SECONDARY_ALPHA)

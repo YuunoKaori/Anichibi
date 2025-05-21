@@ -4,16 +4,32 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    
+    <!-- Sombra suave para dar profundidad -->
+    <path
+        android:fillColor="#20000000"
+        android:pathData="M57,33 A26,26 0 1,1 57,81 A26,26 0 1,1 57,33" />
+    
+    <!-- Círculo principal -->
     <group
         android:scaleX="0.6"
         android:scaleY="0.6"
         android:translateX="21.6"
         android:translateY="21.6">
+        
+        <!-- Círculo exterior con brillo -->
         <path
             android:fillColor="#FFFFFF"
             android:pathData="M54,30 A24,24 0 1,1 54,78 A24,24 0 1,1 54,30" />
+            
+        <!-- Triángulo de reproducción con color actualizado -->
         <path
-            android:fillColor="#E83B71"
+            android:fillColor="#FF4081"
             android:pathData="M48,42l20,12l-20,12z" />
+            
+        <!-- Brillo superior para efecto de cristal -->
+        <path
+            android:fillColor="#30FFFFFF"
+            android:pathData="M54,34a20,7 0,1 0,0 14a20,7 0,1 0,0 -14z" />
     </group>
 </vector> 

@@ -5,19 +5,28 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -27,10 +36,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,12 +50,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastMap
@@ -84,6 +104,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.shouldExpandFAB
 import tachiyomi.source.local.entries.manga.isLocal
 import java.time.Instant
+import kotlinx.coroutines.delay
 
 @Composable
 fun MangaScreen(
@@ -270,6 +291,20 @@ private fun MangaScreenSmallImpl(
     onInvertSelection: () -> Unit,
 ) {
     val chapterListState = rememberLazyListState()
+    
+    // Detectar si estamos en Android TV
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Enfocar la lista de capítulos al cargar la pantalla en Android TV
+    LaunchedEffect(isAndroidTV) {
+        if (isAndroidTV) {
+            delay(300)
+            // El requestFocus está implícito en la estructura del layout
+        }
+    }
 
     val (chapters, listItem, isAnySelected) = remember(state) {
         Triple(
@@ -344,7 +379,7 @@ private fun MangaScreenSmallImpl(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             val isFABVisible = remember(chapters) {
-                chapters.fastAny { !it.chapter.read } && !isAnySelected
+                chapters.fastAny { !it.chapter.read } && !isAnySelected && !isAndroidTV
             }
             AnimatedVisibility(
                 visible = isFABVisible,
@@ -357,10 +392,17 @@ private fun MangaScreenSmallImpl(
                             state.chapters.fastAny { it.chapter.read }
                         }
                         Text(
-                            text = stringResource(if (isReading) MR.strings.action_resume else MR.strings.action_start),
+                            text = stringResource(
+                                if (isReading) MR.strings.action_resume else MR.strings.action_start,
+                            ),
                         )
                     },
-                    icon = { Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                        )
+                    },
                     onClick = onContinueReading,
                     expanded = chapterListState.shouldExpandFAB(),
                 )
@@ -372,7 +414,7 @@ private fun MangaScreenSmallImpl(
         PullRefresh(
             refreshing = state.isRefreshingData,
             onRefresh = onRefresh,
-            enabled = !isAnySelected,
+            enabled = !isAnySelected && !isAndroidTV,
             indicatorPadding = PaddingValues(top = topPadding),
         ) {
             val layoutDirection = LocalLayoutDirection.current
@@ -390,18 +432,55 @@ private fun MangaScreenSmallImpl(
                         bottom = contentPadding.calculateBottomPadding(),
                     ),
                 ) {
+                    if (isAndroidTV) {
+                        item(key = "start_button") {
+                            val isReading = remember(state.chapters) {
+                                state.chapters.fastAny { it.chapter.read }
+                            }
+                            val buttonText = stringResource(
+                                if (isReading) MR.strings.action_resume else MR.strings.action_start,
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .clickable { onContinueReading() }
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = 8.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = buttonText,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Spacer(modifier = Modifier.weight(1f, fill = true))
+                            }
+                        }
+                    }
+
                     item(
                         key = EntryScreenItem.INFO_BOX,
                         contentType = EntryScreenItem.INFO_BOX,
                     ) {
+                        val contentModifier = Modifier.fillMaxWidth()
+                        
                         MangaInfoBox(
-                            isTabletUi = false,
-                            appBarPadding = topPadding,
+                            isTabletUi = true,
+                            appBarPadding = contentPadding.calculateTopPadding(),
                             manga = state.manga,
                             sourceName = remember { state.source.getNameForMangaInfo() },
                             isStubSource = remember { state.source is StubMangaSource },
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
+                            modifier = contentModifier,
                         )
                     }
 
@@ -420,6 +499,7 @@ private fun MangaScreenSmallImpl(
                             onTrackingClicked = onTrackingClicked,
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
 
@@ -428,11 +508,12 @@ private fun MangaScreenSmallImpl(
                         contentType = EntryScreenItem.DESCRIPTION_WITH_TAG,
                     ) {
                         ExpandableMangaDescription(
-                            defaultExpandState = state.isFromSource,
+                            defaultExpandState = true,
                             description = state.manga.description,
                             tagsProvider = { state.manga.genre },
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
 
@@ -533,6 +614,20 @@ fun MangaScreenLargeImpl(
     var topBarHeight by remember { mutableIntStateOf(0) }
 
     val chapterListState = rememberLazyListState()
+    
+    // Detectar si estamos en Android TV
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Enfocar la lista de capítulos al cargar la pantalla en Android TV
+    LaunchedEffect(isAndroidTV) {
+        if (isAndroidTV) {
+            delay(300)
+            // El requestFocus está implícito en la estructura del layout
+        }
+    }
 
     val internalOnBackPressed = {
         if (isAnySelected) {
@@ -548,6 +643,8 @@ fun MangaScreenLargeImpl(
             val selectedChapterCount = remember(chapters) {
                 chapters.count { it.selected }
             }
+            // Ocultar la barra superior en Android TV
+            if (!isAndroidTV) {
             EntryToolbar(
                 modifier = Modifier.onSizeChanged { topBarHeight = it.height },
                 title = state.manga.title,
@@ -568,6 +665,7 @@ fun MangaScreenLargeImpl(
                 onInvertSelection = { onInvertSelection() },
                 isManga = true,
             )
+            }
         },
         bottomBar = {
             Box(
@@ -591,7 +689,7 @@ fun MangaScreenLargeImpl(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             val isFABVisible = remember(chapters) {
-                chapters.fastAny { !it.chapter.read } && !isAnySelected
+                chapters.fastAny { !it.chapter.read } && !isAnySelected && !isAndroidTV
             }
             AnimatedVisibility(
                 visible = isFABVisible,
@@ -609,7 +707,12 @@ fun MangaScreenLargeImpl(
                             ),
                         )
                     },
-                    icon = { Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                        )
+                    },
                     onClick = onContinueReading,
                     expanded = chapterListState.shouldExpandFAB(),
                 )
@@ -619,13 +722,221 @@ fun MangaScreenLargeImpl(
         PullRefresh(
             refreshing = state.isRefreshingData,
             onRefresh = onRefresh,
-            enabled = !isAnySelected,
+            enabled = !isAnySelected && !isAndroidTV,
             indicatorPadding = PaddingValues(
                 start = insetPadding.calculateStartPadding(layoutDirection),
                 top = with(density) { topBarHeight.toDp() },
                 end = insetPadding.calculateEndPadding(layoutDirection),
             ),
         ) {
+            if (isAndroidTV) {
+                // Layout para Android TV con tres columnas
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = contentPadding.calculateStartPadding(layoutDirection),
+                            end = contentPadding.calculateEndPadding(layoutDirection),
+                        ),
+                ) {
+                    // Fondo simple con un color semitransparente
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                    )
+                    
+                    // Contenedor de las tres columnas 
+                    Row(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Panel de lista de capítulos (izquierda - 25%)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(0.25f) // 25% para la primera columna
+                                .padding(end = 8.dp)
+                        ) {
+                            // Lista de capítulos
+                            VerticalFastScroller(
+                                listState = chapterListState,
+                                topContentPadding = contentPadding.calculateTopPadding(),
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    state = chapterListState,
+                                    contentPadding = PaddingValues(
+                                        top = contentPadding.calculateTopPadding(),
+                                        bottom = contentPadding.calculateBottomPadding(),
+                                    ),
+                                ) {
+                                    // Añadir el botón de Start como primer elemento para Android TV
+                                    item(key = "start_button") {
+                                        val isReading = remember(state.chapters) {
+                                            state.chapters.fastAny { it.chapter.read }
+                                        }
+                                        val buttonText = stringResource(
+                                            if (isReading) MR.strings.action_resume else MR.strings.action_start,
+                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                                .clip(MaterialTheme.shapes.medium)
+                                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                                .clickable { onContinueReading() }
+                                                .padding(vertical = 12.dp, horizontal = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.PlayArrow,
+                                                contentDescription = null,
+                                                modifier = Modifier.padding(end = 8.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                            Text(
+                                                text = buttonText,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                            Spacer(modifier = Modifier.weight(1f, fill = true))
+                                        }
+                                    }
+
+                                    // Listado de capítulos
+                                    item(
+                                        key = EntryScreenItem.ITEM_HEADER,
+                                        contentType = EntryScreenItem.ITEM_HEADER,
+                                    ) {
+                                        val missingChaptersCount = remember(chapters) {
+                                            chapters.map { it.chapter.chapterNumber }.missingChaptersCount()
+                                        }
+                                        ItemHeader(
+                                            enabled = !isAnySelected,
+                                            itemCount = chapters.size,
+                                            missingItemsCount = missingChaptersCount,
+                                            onClick = onFilterButtonClicked,
+                                            isManga = true,
+                                        )
+                                    }
+
+                                    sharedChapterItems(
+                                        manga = state.manga,
+                                        chapters = listItem,
+                                        isAnyChapterSelected = chapters.fastAny { it.selected },
+                                        chapterSwipeStartAction = chapterSwipeStartAction,
+                                        chapterSwipeEndAction = chapterSwipeEndAction,
+                                        onChapterClicked = onChapterClicked,
+                                        onDownloadChapter = onDownloadChapter,
+                                        onChapterSelected = onChapterSelected,
+                                        onChapterSwipe = onChapterSwipe,
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Panel de imagen del manga (centro - 35%)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(0.35f) // 35% para la segunda columna
+                                .padding(horizontal = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                            ) {
+                                // Solo la imagen del manga sin el título
+                                MangaInfoBox(
+                                    isTabletUi = true,
+                                    appBarPadding = contentPadding.calculateTopPadding(),
+                                    manga = state.manga,
+                                    sourceName = remember { state.source.getNameForMangaInfo() },
+                                    isStubSource = remember { state.source is StubMangaSource },
+                                    onCoverClick = if (isAndroidTV) { {} } else { onCoverClicked }, // No seleccionable en Android TV
+                                    doSearch = onSearch,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusProperties { canFocus = false }, // Desactivar focus en la imagen
+                                    showTitle = false,
+                                )
+                                
+                                // Botones de acción
+                                MangaActionRow(
+                                    favorite = state.manga.favorite,
+                                    trackingCount = state.trackingCount,
+                                    nextUpdate = nextUpdate,
+                                    isUserIntervalMode = state.manga.fetchInterval < 0,
+                                    onAddToLibraryClicked = onAddToLibraryClicked,
+                                    onWebViewClicked = onWebViewClicked,
+                                    onWebViewLongClicked = onWebViewLongClicked,
+                                    onTrackingClicked = onTrackingClicked,
+                                    onEditIntervalClicked = onEditIntervalClicked,
+                                    onEditCategory = onEditCategoryClicked,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    isAndroidTV = isAndroidTV, // Pasar la información para controlar el foco
+                                )
+                            }
+                        }
+                        
+                        // Panel de título y sinopsis (derecha - 40%)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(0.40f) // 40% para la tercera columna
+                                .padding(start = 8.dp)
+                                .focusProperties { canFocus = false } // Desactivar focus para toda la columna
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp)
+                            ) {
+                                // Título del manga solo en la columna derecha
+                                Text(
+                                    text = state.manga.title,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    modifier = Modifier.padding(bottom = 16.dp),
+                                )
+                                
+                                // Descripción simple sin interacción
+                                Text(
+                                    text = state.manga.description ?: stringResource(MR.strings.description_placeholder),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = if (isAndroidTV) Int.MAX_VALUE else 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                
+                                // Tags (géneros) - si hay contenido
+                                if (state.manga.genre?.isNotEmpty() == true) {
+                                    FlowRow(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp)
+                                            .focusProperties { canFocus = false }, // Desactivar focus para los tags
+                                    ) {
+                                        state.manga.genre?.forEach { tag ->
+                                            SuggestionChip(
+                                                onClick = { onTagSearch(tag) },
+                                                label = { Text(tag) },
+                                                modifier = Modifier
+                                                    .padding(
+                                                        end = 8.dp,
+                                                        bottom = 8.dp,
+                                                    )
+                                                    .focusProperties { canFocus = false }, // Desactivar focus para cada chip
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Mantener el diseño original para tablets normales
             TwoPanelBox(
                 modifier = Modifier.padding(
                     start = contentPadding.calculateStartPadding(layoutDirection),
@@ -637,6 +948,7 @@ fun MangaScreenLargeImpl(
                             .verticalScroll(rememberScrollState())
                             .padding(bottom = contentPadding.calculateBottomPadding()),
                     ) {
+                            val contentModifier = Modifier.fillMaxWidth()
                         MangaInfoBox(
                             isTabletUi = true,
                             appBarPadding = contentPadding.calculateTopPadding(),
@@ -645,6 +957,7 @@ fun MangaScreenLargeImpl(
                             isStubSource = remember { state.source is StubMangaSource },
                             onCoverClick = onCoverClicked,
                             doSearch = onSearch,
+                                modifier = contentModifier,
                         )
                         MangaActionRow(
                             favorite = state.manga.favorite,
@@ -657,6 +970,7 @@ fun MangaScreenLargeImpl(
                             onTrackingClicked = onTrackingClicked,
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
+                                modifier = contentModifier,
                         )
                         ExpandableMangaDescription(
                             defaultExpandState = true,
@@ -664,6 +978,7 @@ fun MangaScreenLargeImpl(
                             tagsProvider = { state.manga.genre },
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
+                                modifier = contentModifier,
                         )
                     }
                 },
@@ -711,6 +1026,7 @@ fun MangaScreenLargeImpl(
                     }
                 },
             )
+            }
         }
     }
 }

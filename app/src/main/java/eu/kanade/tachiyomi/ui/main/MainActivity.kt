@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -69,6 +70,7 @@ import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.util.AssistContentScreen
 import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
 import eu.kanade.tachiyomi.BuildConfig
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.model.Hoster
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.core.common.Constants
@@ -150,6 +152,16 @@ class MainActivity : BaseActivity() {
         val splashScreen = if (isLaunch) installSplashScreen() else null
 
         super.onCreate(savedInstanceState)
+
+        // Detectar y configurar para Android TV
+        val isAndroidTV = packageManager.hasSystemFeature("android.software.leanback")
+        if (isAndroidTV) {
+            // Configurar la actividad para navegación optimizada con D-pad
+            setupTvModeNavigation()
+            
+            // Activar modo tableta automáticamente para mejor experiencia en TV
+            setupTabletModeForTV()
+        }
 
         val didMigration = Migrator.awaitAndRelease()
 
@@ -563,6 +575,105 @@ class MainActivity : BaseActivity() {
         }
         ExternalIntents.externalIntents.episodeId?.let {
             outState.putLong(SAVED_STATE_EPISODE_KEY, it)
+        }
+    }
+
+    /**
+     * Configura la navegación optimizada para Android TV
+     * siguiendo las directrices de Google para aplicaciones en TV
+     */
+    private fun setupTvModeNavigation() {
+        // Configurar decorView para mejorar la detección del D-pad
+        window.decorView.apply {
+            isFocusable = true
+            isFocusableInTouchMode = true
+            
+            // Establecer el modo de navegación espacial para Android TV
+            // Esto mejora la navegación con D-pad haciendo que sea más predecible
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                this.setFocusable(true)
+                this.isFocusableInTouchMode = true
+                
+                // Mejorar comportamiento del foco
+                val focusParams = android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                        android.view.WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+                window.addFlags(focusParams)
+            }
+        }
+        
+        // Eliminar sobrecargas innecesarias para TV
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        }
+        
+        // Configuración para garantizar que los elementos sean navegables con D-pad
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            // Asegurar que el foco inicial se asigna correctamente
+            view.requestFocus()
+            insets
+        }
+        
+        // Capturar eventos de teclas D-pad para mejorar la navegación espacial
+        window.decorView.setOnKeyListener { _, keyCode, event ->
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        // Permitir que el evento siga su curso normal
+                        false
+                    } else {
+                        // Consumir el evento UP para evitar comportamientos extraños
+                        true
+                    }
+                }
+                else -> false
+            }
+        }
+        
+        // Configurar preferencias de orden de episodios específicas para Android TV
+        // esto mejorará la experiencia de usuario con navegación por D-pad
+        setupEpisodeSortingForTV()
+    }
+    
+    /**
+     * Configura las preferencias de orden de episodios optimizadas para Android TV
+     * Establece el orden predeterminado por número de episodio en lugar de por fuente
+     * ya que es más intuitivo para la navegación con D-pad
+     */
+    private fun setupEpisodeSortingForTV() {
+        // Importar las preferencias necesarias
+        val libraryPreferences: LibraryPreferences by injectLazy()
+        
+        // Establecer el ordenamiento predeterminado de episodios por número
+        // en lugar de por orden de fuente para facilitar la navegación
+        libraryPreferences.sortEpisodeBySourceOrNumber().set(tachiyomi.domain.entries.anime.model.Anime.EPISODE_SORTING_NUMBER)
+        
+        // Establecer el orden ascendente para que los episodios aparezcan del primero al último
+        libraryPreferences.sortEpisodeByAscendingOrDescending().set(tachiyomi.domain.entries.anime.model.Anime.EPISODE_SORT_ASC)
+        
+        // Mostrar número de episodio en vez de nombre para mayor claridad
+        libraryPreferences.displayEpisodeByNameOrNumber().set(tachiyomi.domain.entries.anime.model.Anime.EPISODE_DISPLAY_NUMBER)
+    }
+
+    /**
+     * Configura el modo tableta para la mejor experiencia en Android TV
+     * Esto asegura que la interfaz de usuario sea óptima para pantallas grandes y navegación con D-pad
+     */
+    private fun setupTabletModeForTV() {
+        // Importar las preferencias necesarias
+        val uiPreferences: eu.kanade.domain.ui.UiPreferences by injectLazy()
+        
+        // Comprobar el modo tableta actual
+        val currentTabletMode = uiPreferences.tabletUiMode().get()
+        
+        // Si no está configurado como "ALWAYS", actualizarlo
+        if (currentTabletMode != eu.kanade.domain.ui.model.TabletUiMode.ALWAYS) {
+            uiPreferences.tabletUiMode().set(eu.kanade.domain.ui.model.TabletUiMode.ALWAYS)
+            logcat(LogPriority.INFO) { "Modo tableta activado automáticamente para Android TV" }
         }
     }
 

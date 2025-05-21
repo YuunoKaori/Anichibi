@@ -1,1 +1,6 @@
-<string name="app_name">Anichibi</string> 
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Anichibi</string>
+    <string name="pref_remove_excluding_manga">Remove excluding mangas</string>
+    <string name="tv_onboarding_description">Anichibi, ningun anime o manga esta alojado en nuestros servidores o app</string>
+</resources> 

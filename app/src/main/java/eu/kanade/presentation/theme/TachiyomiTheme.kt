@@ -85,7 +85,7 @@ private fun getThemeColorScheme(
 
 private const val RIPPLE_DRAGGED_ALPHA = .5f
 private const val RIPPLE_FOCUSED_ALPHA = .6f
-private const val RIPPLE_HOVERED_ALPHA = .4f
+private const val RIPPLE_HOVERED_ALPHA = .98f
 private const val RIPPLE_PRESSED_ALPHA = .6f
 
 val playerRippleConfiguration

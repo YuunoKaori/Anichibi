@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Este es un archivo placeholder para el splash screen -->
+    <!-- El usuario debe reemplazar esto con su propia imagen desde Android Studio -->
+    
+    <!-- Fondo con degradado radial -->
+    <path
+        android:fillColor="#E83B71"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+    
+    <!-- Círculo interior con efecto de brillo -->
+    <path
+        android:fillColor="#FF5C8D"
+        android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0" />
+    
+    <!-- Triángulo de reproducción más elegante con degradado -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M45,36L45,72L75,54L45,36Z" />
+    
+    <!-- Efecto de brillo superior -->
+    <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M54,30a24,10 0,1 0,0 20a24,10 0,1 0,0 -20z" />
+</vector> 

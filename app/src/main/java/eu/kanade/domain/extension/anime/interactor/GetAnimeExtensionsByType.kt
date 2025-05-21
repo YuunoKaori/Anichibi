@@ -54,11 +54,12 @@ class GetAnimeExtensionsByType(
                 }
                 .sortedWith(
                     compareBy<AnimeExtension.Available> { 
-                        // Priorizar JKanime y AnimeFlv
+                        // Priorizar AnimeFLV, JKanime y AnimeID en ese orden
                         when (it.name.lowercase()) {
-                            "jkanime" -> "0"
-                            "animeflv" -> "1"
-                            else -> "2${it.name.lowercase()}"
+                            "animeflv" -> "0"
+                            "jkanime" -> "1"
+                            "animeid" -> "2"
+                            else -> "3${it.name.lowercase()}"
                         }
                     }
                 )

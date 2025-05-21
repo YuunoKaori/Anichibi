@@ -80,6 +80,12 @@ import uy.kohesive.injekt.api.get
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.flow.collectLatest
+import eu.kanade.tachiyomi.ui.browse.manga.migration.search.MigrateMangaDialogScreenModel
+import eu.kanade.tachiyomi.ui.category.CategoriesTab
+import eu.kanade.presentation.entries.manga.DuplicateMangaDialog
+import eu.kanade.presentation.browse.anime.components.RemoveEntryDialog
+import eu.kanade.presentation.category.components.ChangeCategoryDialog
+import eu.kanade.tachiyomi.ui.browse.manga.migration.search.MigrateMangaDialog
 
 class LeerTab : Tab {
 
@@ -186,7 +192,7 @@ class LeerTab : Tab {
             val screenModel = rememberScreenModel(screenModelKey) { 
                 BrowseMangaSourceScreenModel(
                     sourceId = currentStarredSourceId,
-                    listingQuery = GetRemoteManga.QUERY_POPULAR
+                    listingQuery = GetRemoteManga.QUERY_LATEST
                 )
             }
             
@@ -194,7 +200,12 @@ class LeerTab : Tab {
             LaunchedEffect(screenModelKey) {
                 // Refrescar datos completamente cuando cambia la fuente seleccionada
                 screenModel.resetFilters()
-                screenModel.setListing(Listing.Popular)
+                // Modificado: Cargar Latest si es compatible, si no, Popular
+                if (screenModel.source is CatalogueSource && screenModel.source.supportsLatest) {
+                    screenModel.setListing(Listing.Latest)
+                } else {
+                    screenModel.setListing(Listing.Popular)
+                }
             }
             
             val state by screenModel.state.collectAsState()
@@ -218,7 +229,7 @@ class LeerTab : Tab {
                             source = screenModel.source,
                             displayMode = screenModel.displayMode,
                             onDisplayModeChange = { screenModel.displayMode = it },
-                            navigateUp = { },
+                            navigateUp = null,
                             onWebViewClick = {
                                 val source = screenModel.source as? HttpSource ?: return@BrowseMangaSourceToolbar
                                 navigator.push(
@@ -241,24 +252,7 @@ class LeerTab : Tab {
                                 .padding(horizontal = MaterialTheme.padding.small),
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                         ) {
-                            FilterChip(
-                                selected = state.listing == Listing.Popular,
-                                onClick = {
-                                    screenModel.resetFilters()
-                                    screenModel.setListing(Listing.Popular)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Favorite,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(FilterChipDefaults.IconSize),
-                                    )
-                                },
-                                label = {
-                                    Text(text = stringResource(MR.strings.popular))
-                                },
-                            )
+                            // Primero Latest (Reciente)
                             if ((screenModel.source as CatalogueSource).supportsLatest) {
                                 FilterChip(
                                     selected = state.listing == Listing.Latest,
@@ -279,6 +273,28 @@ class LeerTab : Tab {
                                     },
                                 )
                             }
+                            
+                            // Segundo Popular
+                            FilterChip(
+                                selected = state.listing == Listing.Popular,
+                                onClick = {
+                                    screenModel.resetFilters()
+                                    screenModel.setListing(Listing.Popular)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Favorite,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(FilterChipDefaults.IconSize),
+                                    )
+                                },
+                                label = {
+                                    Text(text = stringResource(MR.strings.popular))
+                                },
+                            )
+                            
+                            // Tercero Filter
                             if (state.filters.isNotEmpty()) {
                                 FilterChip(
                                     selected = state.listing is Listing.Search,
@@ -325,10 +341,29 @@ class LeerTab : Tab {
                             navigator.push(MangaScreen(manga.id))
                         } 
                     },
-                    onMangaLongClick = { manga -> 
-                        scope.launch { 
-                            navigator.push(MangaScreen(manga.id))
-                        } 
+                    onMangaLongClick = { manga ->
+                        scope.launch {
+                            try {
+                                val duplicateManga = screenModel.getDuplicateLibraryManga(manga)
+                                when {
+                                    manga.favorite -> screenModel.setDialog(
+                                        BrowseMangaSourceScreenModel.Dialog.RemoveManga(manga),
+                                    )
+                                    duplicateManga != null -> screenModel.setDialog(
+                                        BrowseMangaSourceScreenModel.Dialog.AddDuplicateManga(
+                                            manga,
+                                            duplicateManga,
+                                        ),
+                                    )
+                                    else -> screenModel.addFavorite(manga)
+                                }
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            } catch (e: UnsupportedOperationException) {
+                                snackbarHostState.showSnackbar("Esta acción no es soportada por la extensión.")
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(e.message ?: "Error desconocido")
+                            }
+                        }
                     },
                 )
 
@@ -348,16 +383,45 @@ class LeerTab : Tab {
                         screenModel.setDialog(null)
                     }
                     is BrowseMangaSourceScreenModel.Dialog.AddDuplicateManga -> {
-                        // Aquí se manejaría el diálogo de manga duplicado si se requiere
+                        // Igual que browse: permitir agregar, migrar o abrir duplicado
+                         DuplicateMangaDialog(
+                            onDismissRequest = onDismissRequest,
+                            onConfirm = { screenModel.addFavorite(dialog.manga) },
+                            onOpenManga = { navigator.push(MangaScreen(dialog.duplicate.id)) },
+                            onMigrate = {
+                                screenModel.setDialog(
+                                    BrowseMangaSourceScreenModel.Dialog.Migrate(dialog.manga, dialog.duplicate),
+                                )
+                            },
+                        )
                     }
                     is BrowseMangaSourceScreenModel.Dialog.Migrate -> {
-                        // Aquí se manejaría el diálogo de migración si se requiere
+                        MigrateMangaDialog(
+                            oldManga = dialog.oldManga,
+                            newManga = dialog.newManga,
+                            screenModel = MigrateMangaDialogScreenModel(),
+                            onDismissRequest = onDismissRequest,
+                            onClickTitle = { navigator.push(MangaScreen(dialog.oldManga.id)) },
+                            onPopScreen = { onDismissRequest() },
+                        )
                     }
                     is BrowseMangaSourceScreenModel.Dialog.RemoveManga -> {
-                        // Aquí se manejaría el diálogo de eliminación si se requiere
+                        RemoveEntryDialog(
+                            onDismissRequest = onDismissRequest,
+                            onConfirm = { screenModel.changeMangaFavorite(dialog.manga) },
+                            entryToRemove = dialog.manga.title,
+                        )
                     }
                     is BrowseMangaSourceScreenModel.Dialog.ChangeMangaCategory -> {
-                        // Aquí se manejaría el diálogo de cambio de categoría si se requiere
+                        ChangeCategoryDialog(
+                            initialSelection = dialog.initialSelection,
+                            onDismissRequest = onDismissRequest,
+                            onEditCategories = { navigator.push(CategoriesTab) },
+                            onConfirm = { include: List<Long>, _ ->
+                                screenModel.changeMangaFavorite(dialog.manga)
+                                screenModel.moveMangaToCategories(dialog.manga, include)
+                            },
+                        )
                     }
                     else -> {}
                 }

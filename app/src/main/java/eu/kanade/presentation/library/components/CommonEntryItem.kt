@@ -25,14 +25,25 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.inset
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.entries.components.ItemCover
+import kotlinx.coroutines.delay
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.BadgeGroup
 import tachiyomi.presentation.core.i18n.stringResource
@@ -63,7 +75,8 @@ private val ContinueViewingButtonIconSizeLarge = 20.dp
 private val ContinueViewingButtonGridPadding = 6.dp
 private val ContinueViewingButtonListSpacing = 8.dp
 
-private const val GRID_SELECTED_COVER_ALPHA = 0.76f
+// No oscurecer tanto la portada cuando está seleccionado
+private const val GRID_SELECTED_COVER_ALPHA = 0.95f
 
 /**
  * Layout of grid list item with title overlaying the cover.
@@ -80,11 +93,56 @@ fun EntryCompactGridItem(
     coverAlpha: Float = 1f,
     coverBadgeStart: @Composable (RowScope.() -> Unit)? = null,
     coverBadgeEnd: @Composable (RowScope.() -> Unit)? = null,
+    isFirstItem: Boolean = false,
 ) {
-    GridItemSelectable(
-        isSelected = isSelected,
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Si es el primer elemento en Android TV, crear un FocusRequester para él
+    val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    
+    // Intentar enfocar automáticamente en este elemento si es el primero
+    if (isFirstItem && isAndroidTV) {
+        LaunchedEffect(Unit) {
+            delay(500) // Esperar que la UI se renderice
+            focusRequester.requestFocus()
+        }
+    }
+    
+    // Color para el borde en Android TV
+    val primaryColor = MaterialTheme.colorScheme.primary
+    // Extraer el valor del radio y añadir 1 para un ajuste perfecto
+    val cornerRadius = (MaterialTheme.shapes.small.toString().replace("RoundedCornerShape\\((.*)\\)".toRegex(), "$1").toFloatOrNull() ?: 4f) + 1f
+    
+    Box(
+        modifier = Modifier
+            .then(
+                if (isFirstItem && isAndroidTV) 
+                    Modifier.focusRequester(focusRequester)
+                else 
+                    Modifier
+            )
+            .then(
+                if (isAndroidTV) {
+                    Modifier.onFocusChanged { 
+                        isFocused = it.isFocused
+                    }
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        // El contenido principal (la casilla)
+        Box(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.small)
+                .combinedClickable(
         onClick = onClick,
         onLongClick = onLongClick,
+                )
     ) {
         EntryGridCover(
             cover = {
@@ -115,6 +173,29 @@ fun EntryCompactGridItem(
                 }
             },
         )
+        }
+        
+        // El borde exterior (solo visible cuando está enfocado)
+        if (isAndroidTV && isFocused) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        // Dibujar un borde delgado con esquinas redondeadas
+                        val strokeWidth = 2.dp.toPx()
+                        val cornerSize = cornerRadius.dp.toPx()
+                        
+                        // Ajustar el tamaño para que el borde se dibuje dentro del área visible
+                        inset(0f, 0f, 0f, 0f) {
+                            drawRoundRect(
+                                color = primaryColor,
+                                style = Stroke(width = strokeWidth),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerSize)
+                            )
+                        }
+                    }
+            )
+        }
     }
 }
 
@@ -187,12 +268,36 @@ fun EntryComfortableGridItem(
     coverBadgeEnd: (@Composable RowScope.() -> Unit)? = null,
     onClickContinueViewing: (() -> Unit)? = null,
 ) {
-    GridItemSelectable(
-        isSelected = isSelected,
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    var isFocused by remember { mutableStateOf(false) }
+    val primaryColor = MaterialTheme.colorScheme.primary
+    // Extraer el valor del radio y añadir 1 para un ajuste perfecto
+    val cornerRadius = (MaterialTheme.shapes.small.toString().replace("RoundedCornerShape\\((.*)\\)".toRegex(), "$1").toFloatOrNull() ?: 4f) + 1f
+    
+    Box(
+        modifier = Modifier
+            .then(
+                if (isAndroidTV) {
+                    Modifier.onFocusChanged { 
+                        isFocused = it.isFocused
+                    }
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        // El contenido principal
+        Column(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.small)
+                .combinedClickable(
         onClick = onClick,
         onLongClick = onLongClick,
+                )
     ) {
-        Column {
             EntryGridCover(
                 cover = {
                     ItemCover.Book(
@@ -223,6 +328,28 @@ fun EntryComfortableGridItem(
                 style = MaterialTheme.typography.titleSmall,
                 minLines = 2,
                 maxLines = titleMaxLines,
+            )
+        }
+        
+        // El borde exterior (solo visible cuando está enfocado)
+        if (isAndroidTV && isFocused) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        // Dibujar un borde delgado con esquinas redondeadas
+                        val strokeWidth = 2.dp.toPx()
+                        val cornerSize = cornerRadius.dp.toPx()
+                        
+                        // Ajustar el tamaño para que el borde se dibuje dentro del área visible
+                        inset(0f, 0f, 0f, 0f) {
+                            drawRoundRect(
+                                color = primaryColor,
+                                style = Stroke(width = strokeWidth),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerSize)
+                            )
+                        }
+                    }
             )
         }
     }
@@ -297,6 +424,18 @@ private fun GridItemSelectable(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Recordar el estado de foco para mostrar un borde más visible
+    var isFocused by remember { mutableStateOf(false) }
+    
+    // Colores para usar en los efectos visuales
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.small)
@@ -304,11 +443,41 @@ private fun GridItemSelectable(
                 onClick = onClick,
                 onLongClick = onLongClick,
             )
-            .selectedOutline(isSelected = isSelected, color = MaterialTheme.colorScheme.secondary)
+            .then(
+                if (isAndroidTV) {
+                    Modifier
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .drawBehind {
+                            if (isFocused) {
+                                // Usar el color del tema en lugar de cian fijo
+                                val borderWidth = 6.dp.toPx()
+                                drawRect(
+                                    color = primaryColor,
+                                    size = size,
+                                    style = Stroke(width = borderWidth)
+                                )
+                                // Fondo con mayor opacidad para mejor visibilidad
+                                drawRect(color = primaryColor.copy(alpha = 0.35f))
+                            }
+                        }
+                } else {
+                    Modifier
+                }
+            )
+            .selectedOutline(
+                isSelected = isSelected, 
+                color = secondaryColor,
+                primaryColor = primaryColor,
+                isAndroidTV = isAndroidTV,
+            )
             .padding(4.dp),
     ) {
         val contentColor = if (isSelected) {
+            if (isAndroidTV) {
+                primaryColor
+            } else {
             MaterialTheme.colorScheme.onSecondary
+            }
         } else {
             LocalContentColor.current
         }
@@ -324,7 +493,39 @@ private fun GridItemSelectable(
 private fun Modifier.selectedOutline(
     isSelected: Boolean,
     color: Color,
-) = drawBehind { if (isSelected) drawRect(color = color) }
+    primaryColor: Color,
+    isAndroidTV: Boolean = false,
+) = drawBehind { 
+    if (isSelected) {
+        if (isAndroidTV) {
+            // Borde más grueso con color intenso para Android TV
+            val borderWidth = 6.dp.toPx()
+            
+            // Fondo naranja casi sólido con solo 2% de transparencia
+            drawRect(color = primaryColor.copy(alpha = 0.98f))
+            
+            // Borde para delimitar claramente el elemento seleccionado
+            drawRect(
+                color = Color.White.copy(alpha = 0.7f), // Borde blanco semitransparente para contraste
+                size = size,
+                style = Stroke(width = borderWidth)
+            )
+        } else {
+            // Para móviles también hacemos el fondo más visible
+            val borderWidth = 4.dp.toPx()
+            
+            // Fondo naranja casi sólido con solo 15% de transparencia
+            drawRect(color = primaryColor.copy(alpha = 0.85f))
+            
+            // Borde visible para delimitar el elemento
+            drawRect(
+                color = primaryColor,
+                size = size,
+                style = Stroke(width = borderWidth)
+            )
+        }
+    }
+}
 
 /**
  * Layout of list item.
@@ -342,9 +543,42 @@ fun EntryListItem(
     entries: Int = 0,
     containerHeight: Int = 0,
 ) {
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+    
+    // Estado de foco para mejorar visibilidad en Android TV
+    var isFocused by remember { mutableStateOf(false) }
+    
+    // Obtener colores del tema para usar en drawBehind
+    val primaryColor = MaterialTheme.colorScheme.primary
+    
     Row(
         modifier = Modifier
             .selectedBackground(isSelected)
+            .drawBehind {
+                if (isSelected) {
+                    // Borde sutil de 1px para ambas plataformas
+                    val borderWidth = 1.dp.toPx()
+                    drawRect(
+                        color = primaryColor,
+                        size = size,
+                        style = Stroke(width = borderWidth)
+                    )
+                }
+                // Añadir un indicador de foco muy visible
+                if (isAndroidTV && isFocused) {
+                    val focusBorderWidth = 3.dp.toPx() // Reducido de 5dp a 3dp
+                    drawRect(
+                        color = primaryColor,
+                        size = size,
+                        style = Stroke(width = focusBorderWidth)
+                    )
+                    // Fondo con mayor opacidad para mayor contraste
+                    drawRect(color = primaryColor.copy(alpha = 0.35f))
+                }
+            }
             .height(
                 when (entries) {
                     0 -> 76.dp
@@ -353,6 +587,14 @@ fun EntryListItem(
                         with(density) { (containerHeight / entries).toDp() } - (3 / entries).dp
                     }
                 },
+            )
+            .then(
+                if (isAndroidTV) {
+                    Modifier
+                        .onFocusChanged { isFocused = it.isFocused }
+                } else {
+                    Modifier
+                }
             )
             .combinedClickable(
                 onClick = onClick,

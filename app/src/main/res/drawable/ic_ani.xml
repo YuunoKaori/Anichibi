@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:viewportWidth="512"
-    android:viewportHeight="512"
-    android:width="256dp"
-    android:height="256dp">
-    
-    <!-- Fondo circular -->
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Círculo exterior -->
     <path
-        android:pathData="M256,32 A224,224 0 1,0 256,480 A224,224 0 1,0 256,32z"
-        android:fillColor="#3F51B5" />
-        
-    <!-- Círculo interior -->
+        android:fillColor="#FF4081"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
+
+    <!-- Círculo interior con brillo -->
     <path
-        android:pathData="M256,56 A200,200 0 1,0 256,456 A200,200 0 1,0 256,56z"
-        android:fillColor="#7986CB" />
-    
-    <!-- Carácter "幻" (fantasía/ilusión) optimizado -->
+        android:fillColor="#FF5C8D"
+        android:pathData="M12,4c4.42,0 8,3.58 8,8s-3.58,8 -8,8 -8,-3.58 -8,-8 3.58,-8 8,-8z" />
+
+    <!-- Triángulo de reproducción en blanco para mejor contraste -->
     <path
-        android:pathData="M64,64h384v42.6h-170.6v42.6h181.3v42.6h-181.3v42.6h181.3v42.6h-384v-42.6h170.6v-42.6h-170.6v-42.6h170.6v-42.6h-170.6v-42.6z"
-        android:fillColor="#FFFFFF" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,8v8l6,-4z" />
+
+    <!-- Brillo superior para efecto de cristal -->
+    <path
+        android:fillColor="#30FFFFFF"
+        android:pathData="M12,6c3,0 5.5,0.5 5.5,2s-2.5,2 -5.5,2 -5.5,-0.5 -5.5,-2 2.5,-2 5.5,-2z" />
 </vector>

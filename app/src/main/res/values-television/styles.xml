@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+     * Estilos específicos para Android TV optimizados según las directrices
+     * de Google sobre desarrollo de aplicaciones para Android TV
+     -->
+    
+    <!-- Estilo base para componentes en Android TV -->
+    <style name="Widget.Anigiri.TV" parent="">
+        <!-- Configuración óptima de foco para navegación con D-pad -->
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
+        <item name="android:descendantFocusability">afterDescendants</item>
+        <item name="android:nextFocusLeft">@id/auto_focus</item>
+        <item name="android:nextFocusRight">@id/auto_focus</item>
+        <item name="android:nextFocusUp">@id/auto_focus</item>
+        <item name="android:nextFocusDown">@id/auto_focus</item>
+    </style>
+    
+    <!-- Estilo optimizado para botones en TV -->
+    <style name="Widget.Anigiri.TV.Button" parent="Widget.Material3.Button">
+        <!-- Dimensiones optimizadas para TV -->
+        <item name="android:minHeight">64dp</item>
+        <item name="android:minWidth">128dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:padding">16dp</item>
+        
+        <!-- Configuración de estado para navegación D-pad -->
+        <item name="android:stateListAnimator">@null</item>
+        <item name="backgroundTint">?attr/colorSurfaceContainer</item>
+        <item name="rippleColor">?attr/colorPrimary</item>
+    </style>
+    
+    <!-- Estilo optimizado para tarjetas en TV -->
+    <style name="Widget.Anigiri.TV.Card" parent="Widget.Material3.CardView.Elevated">
+        <!-- Configuración de foco para D-pad -->
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
+        <item name="android:clickable">true</item>
+        
+        <!-- Configuración visual optimizada para TV -->
+        <item name="cardElevation">8dp</item>
+        <item name="cardCornerRadius">8dp</item>
+        <item name="contentPadding">24dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
+        
+        <!-- Transiciones de estado para mejorar la experiencia -->
+        <item name="android:stateListAnimator">@animator/tv_card_state_animator</item>
+    </style>
+    
+    <!-- Estilo para texto en TV -->
+    <style name="TextAppearance.Anigiri.TV" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">18sp</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+</resources> 

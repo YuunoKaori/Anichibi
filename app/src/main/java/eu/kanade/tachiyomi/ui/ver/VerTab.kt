@@ -81,6 +81,12 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
+import eu.kanade.tachiyomi.ui.browse.anime.extension.details.AnimeSourcePreferencesScreen
+import eu.kanade.presentation.entries.anime.DuplicateAnimeDialog
+import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeDialog
+import eu.kanade.tachiyomi.ui.browse.anime.migration.search.MigrateAnimeDialogScreenModel
+import eu.kanade.presentation.browse.anime.components.RemoveEntryDialog
+import eu.kanade.presentation.category.components.ChangeCategoryDialog
 
 class VerTab : Tab {
 
@@ -151,12 +157,14 @@ class VerTab : Tab {
         
         LaunchedEffect(installedExtensions, starredSourceId) {
             if (starredSourceId == null && installedExtensions.isNotEmpty() && !didSelectInitialSource) {
-                // Obtener la primera fuente disponible
-                val firstSource = installedExtensions.firstOrNull()?.sources?.firstOrNull()
+                // Buscar una fuente compatible (que sea AnimeCatalogueSource)
+                val compatibleSource = installedExtensions
+                    .flatMap { it.sources }
+                    .firstOrNull { it is AnimeCatalogueSource }
                 
-                if (firstSource != null) {
+                if (compatibleSource != null) {
                     // Establecer esta fuente como la predeterminada
-                    sourcePreferences.starredAnimeSource().set(firstSource.id.toString())
+                    sourcePreferences.starredAnimeSource().set(compatibleSource.id.toString())
                     
                     // Marcar que ya se seleccionó una extensión inicial
                     didSelectInitialSource = true
@@ -186,7 +194,7 @@ class VerTab : Tab {
             val screenModel = rememberScreenModel(screenModelKey) { 
                 BrowseAnimeSourceScreenModel(
                     sourceId = currentStarredSourceId,
-                    listingQuery = GetRemoteAnime.QUERY_POPULAR
+                    listingQuery = GetRemoteAnime.QUERY_LATEST
                 )
             }
             
@@ -194,7 +202,12 @@ class VerTab : Tab {
             LaunchedEffect(screenModelKey) {
                 // Refrescar datos completamente cuando cambia la fuente seleccionada
                 screenModel.resetFilters()
-                screenModel.setListing(Listing.Popular)
+                // Modificado: Cargar Latest si es compatible, si no, Popular
+                if (screenModel.source is AnimeCatalogueSource && screenModel.source.supportsLatest) {
+                    screenModel.setListing(Listing.Latest)
+                } else {
+                    screenModel.setListing(Listing.Popular)
+                }
             }
             
             val state by screenModel.state.collectAsState()
@@ -202,6 +215,21 @@ class VerTab : Tab {
 
             var topBarHeight by remember { mutableIntStateOf(0) }
             var showSourceMenu by remember { mutableStateOf(false) }
+            
+            // Verificar si la fuente es AnimeCatalogueSource para evitar ClassCastException
+            if (screenModel.source !is AnimeCatalogueSource) {
+                // Si no es una fuente de catálogo válida, mostrar mensaje de error
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "La fuente seleccionada no es compatible con Android TV. Selecciona otra fuente.",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                return@Content
+            }
             
             Scaffold(
                 topBar = {
@@ -218,7 +246,7 @@ class VerTab : Tab {
                             source = screenModel.source,
                             displayMode = screenModel.displayMode,
                             onDisplayModeChange = { screenModel.displayMode = it },
-                            navigateUp = { },
+                            navigateUp = null,
                             onWebViewClick = {
                                 val source = screenModel.source as? AnimeHttpSource ?: return@BrowseAnimeSourceToolbar
                                 navigator.push(
@@ -230,7 +258,7 @@ class VerTab : Tab {
                                 )
                             },
                             onHelpClick = { uriHandler.openUri(Constants.URL_HELP) },
-                            onSettingsClick = { },
+                            onSettingsClick = { navigator.push(AnimeSourcePreferencesScreen(screenModel.source.id)) },
                             onSearch = screenModel::search,
                             scrollBehavior = null,
                         )
@@ -241,25 +269,10 @@ class VerTab : Tab {
                                 .padding(horizontal = MaterialTheme.padding.small),
                             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                         ) {
-                            FilterChip(
-                                selected = state.listing == Listing.Popular,
-                                onClick = {
-                                    screenModel.resetFilters()
-                                    screenModel.setListing(Listing.Popular)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Favorite,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(FilterChipDefaults.IconSize),
-                                    )
-                                },
-                                label = {
-                                    Text(text = stringResource(MR.strings.popular))
-                                },
-                            )
-                            if ((screenModel.source as AnimeCatalogueSource).supportsLatest) {
+                            // Primero Latest (Reciente)
+                            val catalogueSource = screenModel.source as AnimeCatalogueSource
+                            
+                            if (catalogueSource.supportsLatest) {
                                 FilterChip(
                                     selected = state.listing == Listing.Latest,
                                     onClick = {
@@ -279,6 +292,28 @@ class VerTab : Tab {
                                     },
                                 )
                             }
+                            
+                            // Segundo Popular
+                            FilterChip(
+                                selected = state.listing == Listing.Popular,
+                                onClick = {
+                                    screenModel.resetFilters()
+                                    screenModel.setListing(Listing.Popular)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Favorite,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(FilterChipDefaults.IconSize),
+                                    )
+                                },
+                                label = {
+                                    Text(text = stringResource(MR.strings.popular))
+                                },
+                            )
+                            
+                            // Tercero Filter
                             if (state.filters.isNotEmpty()) {
                                 FilterChip(
                                     selected = state.listing is Listing.Search,
@@ -325,10 +360,29 @@ class VerTab : Tab {
                             navigator.push(AnimeScreen(anime.id))
                         } 
                     },
-                    onAnimeLongClick = { anime -> 
-                        scope.launch { 
-                            navigator.push(AnimeScreen(anime.id))
-                        } 
+                    onAnimeLongClick = { anime ->
+                        scope.launch {
+                            try {
+                                val duplicateAnime = screenModel.getDuplicateAnimelibAnime(anime)
+                                when {
+                                    anime.favorite -> screenModel.setDialog(
+                                        BrowseAnimeSourceScreenModel.Dialog.RemoveAnime(anime),
+                                    )
+                                    duplicateAnime != null -> screenModel.setDialog(
+                                        BrowseAnimeSourceScreenModel.Dialog.AddDuplicateAnime(
+                                            anime,
+                                            duplicateAnime,
+                                        ),
+                                    )
+                                    else -> screenModel.addFavorite(anime)
+                                }
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            } catch (e: UnsupportedOperationException) {
+                                snackbarHostState.showSnackbar("Esta acción no es soportada por la extensión.")
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(e.message ?: "Error desconocido")
+                            }
+                        }
                     },
                 )
 
@@ -345,16 +399,45 @@ class VerTab : Tab {
                         )
                     }
                     is BrowseAnimeSourceScreenModel.Dialog.AddDuplicateAnime -> {
-                        // Aquí se manejaría el diálogo de anime duplicado si se requiere
+                        // Igual que browse: permitir agregar, migrar o abrir duplicado
+                        DuplicateAnimeDialog(
+                            onDismissRequest = onDismissRequest,
+                            onConfirm = { screenModel.addFavorite(dialog.anime) },
+                            onOpenAnime = { navigator.push(AnimeScreen(dialog.duplicate.id)) },
+                            onMigrate = {
+                                screenModel.setDialog(
+                                    BrowseAnimeSourceScreenModel.Dialog.Migrate(dialog.anime, dialog.duplicate),
+                                )
+                            },
+                        )
                     }
                     is BrowseAnimeSourceScreenModel.Dialog.Migrate -> {
-                        // Aquí se manejaría el diálogo de migración si se requiere
+                        MigrateAnimeDialog(
+                            oldAnime = dialog.oldAnime,
+                            newAnime = dialog.newAnime,
+                            screenModel = MigrateAnimeDialogScreenModel(),
+                            onDismissRequest = onDismissRequest,
+                            onClickTitle = { navigator.push(AnimeScreen(dialog.oldAnime.id)) },
+                            onPopScreen = { onDismissRequest() },
+                        )
                     }
                     is BrowseAnimeSourceScreenModel.Dialog.RemoveAnime -> {
-                        // Aquí se manejaría el diálogo de eliminación si se requiere
+                        RemoveEntryDialog(
+                            onDismissRequest = onDismissRequest,
+                            onConfirm = { screenModel.changeAnimeFavorite(dialog.anime) },
+                            entryToRemove = dialog.anime.title,
+                        )
                     }
                     is BrowseAnimeSourceScreenModel.Dialog.ChangeAnimeCategory -> {
-                        // Aquí se manejaría el diálogo de cambio de categoría si se requiere
+                        ChangeCategoryDialog(
+                            initialSelection = dialog.initialSelection,
+                            onDismissRequest = onDismissRequest,
+                            onEditCategories = { navigator.push(eu.kanade.tachiyomi.ui.category.CategoriesTab) },
+                            onConfirm = { include, _ ->
+                                screenModel.changeAnimeFavorite(dialog.anime)
+                                screenModel.moveAnimeToCategories(dialog.anime, include)
+                            },
+                        )
                     }
                     else -> {}
                 }

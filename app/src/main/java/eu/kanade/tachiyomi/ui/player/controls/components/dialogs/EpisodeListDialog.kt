@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.player.controls.components.dialogs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,13 +21,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
@@ -37,6 +44,8 @@ import eu.kanade.presentation.entries.components.DotSeparatorText
 import eu.kanade.presentation.util.formatEpisodeNumber
 import eu.kanade.tachiyomi.data.database.models.anime.Episode
 import eu.kanade.tachiyomi.util.lang.toRelativeString
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.VerticalFastScroller
@@ -62,6 +71,30 @@ fun EpisodeListDialog(
     val context = LocalContext.current
     val itemScrollIndex = (episodeList.size - currentEpisodeIndex) - 1
     val episodeListState = rememberLazyListState(initialFirstVisibleItemIndex = itemScrollIndex)
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    
+    // Detectar si estamos en Android TV
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+
+    // Asegurar el foco en la lista de episodios para Android TV
+    LaunchedEffect(isAndroidTV) {
+        if (isAndroidTV) {
+            delay(300) // Incrementar el retraso para asegurar que la UI esté completamente lista
+            focusRequester.requestFocus()
+        }
+    }
+
+    // Intentar nuevamente después de la composición inicial para mayor seguridad
+    LaunchedEffect(Unit) {
+        if (isAndroidTV) {
+            // Intentar enfocar después de la primera composición
+            delay(500)
+            focusRequester.requestFocus()
+        }
+    }
 
     PlayerDialog(
         title = stringResource(MR.strings.episodes),
@@ -72,7 +105,9 @@ fun EpisodeListDialog(
             listState = episodeListState,
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxHeight(),
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .focusRequester(focusRequester),
                 state = episodeListState,
             ) {
                 items(
@@ -112,6 +147,7 @@ fun EpisodeListDialog(
                         date = date,
                         onBookmarkClicked = onBookmarkClicked,
                         onEpisodeClicked = onEpisodeClicked,
+                        isAndroidTV = isAndroidTV,
                     )
                 }
             }
@@ -127,13 +163,24 @@ private fun EpisodeListItem(
     date: String?,
     onBookmarkClicked: (Long?, Boolean) -> Unit,
     onEpisodeClicked: (Long?) -> Unit,
+    isAndroidTV: Boolean = false,
 ) {
     var isBookmarked by remember { mutableStateOf(episode.bookmark) }
     var textHeight by remember { mutableStateOf(0) }
 
     val bookmarkIcon = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.Bookmark
     val bookmarkAlpha = if (isBookmarked) 1f else DISABLED_ALPHA
-    val episodeColor = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    
+    // Color más intenso para Android TV para mejor visibilidad con D-Pad
+    val tvHighlightColor = Color(0xFF1976D2) // Blue 700 - más alto contraste
+    
+    val episodeColor = when {
+        isCurrentEpisode && isAndroidTV -> tvHighlightColor
+        isCurrentEpisode -> MaterialTheme.colorScheme.primary
+        isBookmarked -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    
     val textAlpha = if (episode.seen) DISABLED_ALPHA else 1f
     val textWeight = if (isCurrentEpisode) FontWeight.Bold else FontWeight.Normal
     val textStyle = if (isCurrentEpisode) FontStyle.Italic else FontStyle.Normal
@@ -144,11 +191,22 @@ private fun EpisodeListItem(
         onBookmarkClicked(episode.id, bookmarked)
     }
 
-    Row(
-        modifier = Modifier
+    // Modificador específico para Android TV
+    val backgroundModifier = if (isCurrentEpisode && isAndroidTV) {
+        Modifier
             .fillMaxWidth()
             .clickable(onClick = { onEpisodeClicked(episode.id) })
-            .padding(vertical = MaterialTheme.padding.small),
+            .padding(vertical = MaterialTheme.padding.small)
+            .background(Color(0x331976D2)) // Fondo semi-transparente para el item seleccionado
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = { onEpisodeClicked(episode.id) })
+            .padding(vertical = MaterialTheme.padding.small)
+    }
+
+    Row(
+        modifier = backgroundModifier,
     ) {
         IconButton(onClick = { clickBookmark(!isBookmarked) }) {
             Icon(

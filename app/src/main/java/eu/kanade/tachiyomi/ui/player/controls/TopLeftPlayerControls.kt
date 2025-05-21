@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +35,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
-import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import tachiyomi.presentation.core.components.material.padding
 
 @Composable
@@ -42,6 +43,7 @@ fun TopLeftPlayerControls(
     mediaTitle: String,
     onTitleClick: () -> Unit,
     onBackClick: () -> Unit,
+    isAndroidTV: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -49,10 +51,16 @@ fun TopLeftPlayerControls(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.mediumSmall),
     ) {
-        ControlsButton(
-            icon = Icons.AutoMirrored.Default.ArrowBack,
-            onClick = onBackClick,
+        if (!isAndroidTV) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Retroceder",
+                    tint = Color.White,
         )
+            }
+        }
+        
         Column(
             verticalArrangement = Arrangement.spacedBy(-MaterialTheme.padding.extraSmall),
             modifier = Modifier

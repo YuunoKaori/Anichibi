@@ -4,10 +4,18 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Círculo exterior - más definido para mejor visualización en AOD -->
     <path
         android:fillColor="#000000"
         android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+    <!-- Círculo interior para mejor distinción -->
+    <path
+        android:fillColor="#000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+    <!-- Triángulo de reproducción más nítido y ligeramente más grande -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M45,35l30,19l-30,19z" />
+        android:pathData="M44,36l32,18l-32,18z" />
 </vector> 

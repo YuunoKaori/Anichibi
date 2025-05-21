@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+     * Dimensiones optimizadas para Android TV siguiendo las directrices
+     * de Material Design para aplicaciones de televisión
+     * https://m3.material.io/foundations/layout/applying-layout/tv
+     -->
+    
+    <!-- Espaciado y márgenes -->
+    <dimen name="tv_margin_small">12dp</dimen>
+    <dimen name="tv_margin_medium">24dp</dimen>
+    <dimen name="tv_margin_large">32dp</dimen>
+    <dimen name="tv_padding_small">16dp</dimen>
+    <dimen name="tv_padding_medium">24dp</dimen>
+    <dimen name="tv_padding_large">32dp</dimen>
+    
+    <!-- Tamaños de componentes -->
+    <dimen name="tv_min_component_height">64dp</dimen>
+    <dimen name="tv_card_height">172dp</dimen>
+    <dimen name="tv_card_width">240dp</dimen>
+    <dimen name="tv_button_height">64dp</dimen>
+    <dimen name="tv_button_min_width">128dp</dimen>
+    <dimen name="tv_focus_border_width">4dp</dimen>
+    
+    <!-- Tamaños de texto para mejor legibilidad -->
+    <dimen name="tv_text_size_small">14sp</dimen>
+    <dimen name="tv_text_size_medium">16sp</dimen>
+    <dimen name="tv_text_size_large">18sp</dimen>
+    <dimen name="tv_text_size_xlarge">20sp</dimen>
+    <dimen name="tv_text_size_headline">24sp</dimen>
+    
+    <!-- Elevation para componentes -->
+    <dimen name="tv_card_elevation_resting">4dp</dimen>
+    <dimen name="tv_card_elevation_focused">8dp</dimen>
+    <dimen name="tv_elevation_default">2dp</dimen>
+    
+    <!-- Espaciado seguro para evitar overscan -->
+    <dimen name="tv_overscan_horizontal">48dp</dimen>
+    <dimen name="tv_overscan_vertical">27dp</dimen>
+</resources> 

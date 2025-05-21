@@ -22,10 +22,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.player.controls.components.ControlsButton
 import `is`.xyz.mpv.Utils
+import kotlinx.coroutines.delay
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -63,6 +67,21 @@ fun MiddlePlayerControls(
     exit: ExitTransition,
     modifier: Modifier = Modifier,
 ) {
+    // Focus requester para el botón de play/pause
+    val playPauseFocusRequester = remember { FocusRequester() }
+    
+    // Cuando los controles se muestran, enfocar en el botón de play/pause
+    LaunchedEffect(controlsShown) {
+        if (controlsShown && !areControlsLocked) {
+            delay(100) // Pequeña espera para asegurar que la UI está lista
+            try {
+                playPauseFocusRequester.requestFocus()
+            } catch (e: Exception) {
+                // Ignorar errores si el botón no está presente
+            }
+        }
+    }
+    
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -114,6 +133,7 @@ fun MiddlePlayerControls(
                         modifier = Modifier
                             .size(96.dp)
                             .clip(CircleShape)
+                            .focusRequester(playPauseFocusRequester)
                             .clickable(
                                 interaction,
                                 ripple(),

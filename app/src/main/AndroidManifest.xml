@@ -33,6 +33,12 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <!-- Feature para TV -->
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <application
         android:name="eu.kanade.tachiyomi.App"
         android:allowBackup="false"
@@ -48,7 +54,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Tachiyomi"
-        android:value="?android:colorBackground">
+        android:value="?android:colorBackground"
+        tools:ignore="UnusedAttribute">
 
         <activity
             android:name=".ui.main.MainActivity"
@@ -61,6 +68,7 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
 
             <!-- Deep link to add manga repos -->

@@ -10,7 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import tachiyomi.i18n.MR
@@ -30,11 +32,17 @@ fun PlayerDialog(
         onDismissRequest()
     }
 
+    // Detectar si estamos en Android TV
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+
     BasicAlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
         properties = DialogProperties(
-            dismissOnBackPress = true,
+            dismissOnBackPress = !isAndroidTV, // No permitir cerrar con botón atrás en Android TV
             dismissOnClickOutside = true,
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false,

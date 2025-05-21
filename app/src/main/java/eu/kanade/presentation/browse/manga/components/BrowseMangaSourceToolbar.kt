@@ -31,7 +31,7 @@ fun BrowseMangaSourceToolbar(
     source: MangaSource?,
     displayMode: LibraryDisplayMode,
     onDisplayModeChange: (LibraryDisplayMode) -> Unit,
-    navigateUp: () -> Unit,
+    navigateUp: (() -> Unit)? = null,
     onWebViewClick: () -> Unit,
     onHelpClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -51,7 +51,6 @@ fun BrowseMangaSourceToolbar(
         searchQuery = searchQuery,
         onChangeSearchQuery = onSearchQueryChange,
         onSearch = onSearch,
-        onClickCloseSearch = navigateUp,
         actions = {
             AppBarActions(
                 actions = persistentListOf<AppBar.AppBarAction>().builder()

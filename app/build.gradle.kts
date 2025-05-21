@@ -22,8 +22,8 @@ android {
     defaultConfig {
         applicationId = "com.animefantasy.fun"
 
-        versionCode = 128
-        versionName = "0.16.4.3"
+        versionCode = 3
+        versionName = "Anichibi-V3"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")

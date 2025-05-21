@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -131,6 +132,12 @@ fun AppBar(
 
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
+    // Detectar si estamos en Android TV
+    val context = LocalContext.current
+    val isAndroidTV = remember {
+        context.packageManager.hasSystemFeature("android.software.leanback")
+    }
+
     Column(
         modifier = modifier,
     ) {
@@ -143,7 +150,7 @@ fun AppBar(
                             contentDescription = stringResource(MR.strings.action_cancel),
                         )
                     }
-                } else {
+                } else if (!isAndroidTV) { // Solo mostrar el botón de navegación si NO estamos en Android TV
                     navigateUp?.let {
                         IconButton(onClick = it) {
                             UpIcon(navigationIcon = navigationIcon)
